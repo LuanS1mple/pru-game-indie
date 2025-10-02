@@ -456,7 +456,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0.0000066757, y: -431.06}
+  m_AnchoredPosition: {x: 0.0000066757, y: -494.18}
   m_SizeDelta: {x: 946.535, y: 91.809}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1489900247
@@ -728,8 +728,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 779, y: 414}
-  m_SizeDelta: {x: 250.046, y: 62.13}
+  m_AnchoredPosition: {x: 661, y: 478}
+  m_SizeDelta: {x: 252.796, y: 81.383}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1952258587
 MonoBehaviour:
@@ -784,7 +784,7 @@ MonoBehaviour:
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: Map_1
+          m_StringArgument: Map_1_Snow
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!114 &1952258588
