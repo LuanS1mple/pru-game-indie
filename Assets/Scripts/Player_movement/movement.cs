@@ -33,7 +33,7 @@ public class movement : MonoBehaviour
         jumpHeight = 17f;
         rollSpeed = 7f;
         rollDuration = 0.4f; // time roll
-        rollCooldown = 2f;    // cooldown time
+        rollCooldown = 1.5f;    // cooldown time
         canRoll = true;
         isRolling = false;
     }
