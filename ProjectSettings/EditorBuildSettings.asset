@@ -29,4 +29,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/StoryBoard/Story_Board_4.unity
     guid: 7a58202f51371ff4aac50b47f3171850
+  - enabled: 1
+    path: Assets/Scenes/Map_1_Snow.unity
+    guid: 7b9577d68d7d1744bbca4171f96c4019
   m_configObjects: {}
