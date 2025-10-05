@@ -30,10 +30,10 @@ public class movement : MonoBehaviour
         facingRight = true;
         isGrounded = true;
         speed = 5f;
-        jumpHeight = 15f;
+        jumpHeight = 17f;
         rollSpeed = 7f;
         rollDuration = 0.4f; // time roll
-        rollCooldown = 2f;    // cooldown time
+        rollCooldown = 1.5f;    // cooldown time
         canRoll = true;
         isRolling = false;
     }

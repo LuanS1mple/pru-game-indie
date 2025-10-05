@@ -24,8 +24,6 @@ public class attack : MonoBehaviour
     void Update()
     {
         HandleAttack();
-
-        // Nếu đang combo mà hết thời gian bấm tiếp → reset
         if (currentComboStep > 0 && Time.time > comboTimer)
         {
             ResetCombo();
