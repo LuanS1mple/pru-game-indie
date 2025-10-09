@@ -9,14 +9,14 @@ TagManager:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - Player
+  - 
   - Water
   - UI
   - Ground
-
-  - Oneway
-  - Hazard
-  - Enemy
+  - 
+  - 
+  - 
+  - 
   - 
   - 
   - 
@@ -41,34 +41,4 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
-    locked: 0
-  - name: BackgroundFar
-    uniqueID: 330329517
-    locked: 0
-  - name: BackgroundMid
-    uniqueID: 1109434213
-    locked: 0
-  - name: BackgroundNear
-    uniqueID: 2004569197
-    locked: 0
-  - name: BackgroundTiles
-    uniqueID: 26353681
-    locked: 0
-  - name: Ground
-    uniqueID: 3424267411
-    locked: 0
-  - name: Props
-    uniqueID: 2057052843
-    locked: 0
-  - name: Foreground
-    uniqueID: 1841818089
-    locked: 0
-  - name: Characters
-    uniqueID: 1187305377
-    locked: 0
-  - name: VFX
-    uniqueID: 3024488053
-    locked: 0
-  - name: UI
-    uniqueID: 3763268669
     locked: 0
