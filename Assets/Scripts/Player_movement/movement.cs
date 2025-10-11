@@ -10,8 +10,7 @@ public class movement : MonoBehaviour
     public LayerMask groundLayer;
     public Transform groundCheck;
     public bool facingRight;
-    [HideInInspector] public bool isGrounded;
-
+    private bool isGrounded;
     // Roll parameters
     public float  rollSpeed;
     public float rollDuration;  // thời gian lăn
