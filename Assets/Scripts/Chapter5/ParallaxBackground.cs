@@ -1,18 +1,20 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
-public class NewBehaviourScript : MonoBehaviour
+public class ParallaxBackground : MonoBehaviour
 {
-    // Start is called before the first frame update
+    public Transform cameraTransform;
+    public float parallaxMultiplier = 0.3f;
+    private Vector3 lastCameraPosition;
+
     void Start()
     {
-        
+        lastCameraPosition = cameraTransform.position;
     }
 
-    // Update is called once per frame
-    void Update()
+    void LateUpdate() // phải là LateUpdate!
     {
-        
+        Vector3 deltaMovement = cameraTransform.position - lastCameraPosition;
+        transform.position += new Vector3(deltaMovement.x * parallaxMultiplier, deltaMovement.y * parallaxMultiplier, 0);
+        lastCameraPosition = cameraTransform.position;
     }
 }
