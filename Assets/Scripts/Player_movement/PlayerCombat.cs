@@ -1,60 +1,51 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 
 public class PlayerCombat : MonoBehaviour
 {
     public BaseStats playerStats;
-    public Collider2D attackCollider;     // hitbox (isTrigger = true)
-    private attack attackScript;          // script combo bạn đã có
+    public Collider2D attackCollider;
 
-    private bool canDealDamage = false;   // chỉ bật khi đang tấn công
+
+    private bool canDealDamage = false;
+    private HashSet<Collider2D> hitEnemies = new HashSet<Collider2D>();
 
     void Start()
     {
         playerStats = GetComponent<BaseStats>();
-        attackScript = GetComponent<attack>();
-
         if (attackCollider != null)
-            attackCollider.enabled = false;  // tắt khi chưa tấn công
+            attackCollider.enabled = false;
     }
 
-    void Update()
+    // Gọi từ Animation Event
+    public void EnableAttackCollider()
     {
-        if (attackScript != null && attackScript.isAttacking)
-        {
-            if (!canDealDamage)
-            {
-                EnableAttackCollider();
-            }
-        }
-        else
-        {
-            if (canDealDamage)
-            {
-                DisableAttackCollider();
-            }
-        }
-    }
-
-    void EnableAttackCollider()
-    {
+        if (attackCollider == null) return;
         canDealDamage = true;
+
+        attackCollider.enabled = false; // reset collider để OnTriggerEnter2D hoạt động lại
         attackCollider.enabled = true;
+
+        hitEnemies.Clear();
     }
 
-    void DisableAttackCollider()
+    // Gọi từ Animation Event
+    public void DisableAttackCollider()
     {
+        if (attackCollider == null) return;
         canDealDamage = false;
         attackCollider.enabled = false;
     }
 
-    // Khi hitbox va chạm quái
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (!canDealDamage) return;
-        if (collision.CompareTag("Enemy"))
+
+        if (collision.CompareTag("Enemy") && !hitEnemies.Contains(collision))
         {
+            hitEnemies.Add(collision);
             BaseStats enemyStats = collision.GetComponent<BaseStats>();
-            if (enemyStats != null && !enemyStats.isDead)
+            if (enemyStats != null)
             {
                 enemyStats.TakeDamage(playerStats.attack);
             }
