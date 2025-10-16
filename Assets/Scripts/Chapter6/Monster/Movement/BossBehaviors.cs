@@ -1,6 +1,5 @@
 ﻿using Pathfinding;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class BossBehaviors : MonoBehaviour
@@ -8,16 +7,19 @@ public class BossBehaviors : MonoBehaviour
     [Header("References")]
     public AIPath aiPath;
     private Animator animator;
-    public GameObject target;  // người chơi
-    public GameObject castPrefab; // object tạo ra khi Cast
+    public GameObject target;
+    public GameObject castPrefab;
+    public BossStat bossStat;
 
     [Header("Settings")]
     public float attackRange = 2f;
+    public float attackCooldown = 2f;
     public float castCooldown = 5f;
+
+    private bool canAttack = true;
     private bool canCast = true;
 
     [Header("States")]
-    public bool IsDeath;
     public bool IsHurt;
     public bool IsAttack;
     public bool IsCast;
@@ -27,98 +29,127 @@ public class BossBehaviors : MonoBehaviour
     {
         if (aiPath == null) aiPath = GetComponent<AIPath>();
         if (animator == null) animator = GetComponent<Animator>();
+        if (bossStat == null) bossStat = GetComponent<BossStat>();
     }
 
     void Update()
     {
-        if (IsDeath || IsHurt) return; // nếu đang chết hoặc bị thương thì dừng logic
+        if (bossStat != null && bossStat.isDead) return;
+        if (IsAttack || IsCast || IsHurt) return;
 
         float distance = Vector2.Distance(transform.position, target.transform.position);
 
-        // Quái luôn hướng về người chơi
         aiPath.destination = target.transform.position;
 
-        // Nếu còn sống và không cast thì đang đi
-        IsWalk = !IsAttack && !IsCast;
-
-        // Gán animation
+        IsWalk = true;
         UpdateAnimator();
 
-        // Kiểm tra hành vi theo khoảng cách
         if (distance <= attackRange)
-        {
             TryAttack();
-        }
         else
-        {
             TryCast();
-        }
     }
 
     void TryAttack()
     {
-        if (!IsAttack)
-        {
+        if (canAttack)
             StartCoroutine(AttackRoutine());
-        }
     }
 
     IEnumerator AttackRoutine()
     {
+        canAttack = false;
         IsAttack = true;
         IsWalk = false;
-        animator.SetBool("IsAttack", true);
         aiPath.canMove = false;
+        animator.SetBool("IsAttack", true);
 
-        // Giả lập thời gian tấn công
         yield return new WaitForSeconds(1f);
 
         IsAttack = false;
         aiPath.canMove = true;
+        animator.SetBool("IsAttack", false);
+
+        yield return new WaitForSeconds(attackCooldown);
+        canAttack = true;
     }
 
     void TryCast()
     {
-        if (canCast && !IsCast)
-        {
-            float random = Random.value; // 0 -> 1
-            if (random <= 0.2f) // 20% tỉ lệ cast
-            {
-                StartCoroutine(CastRoutine());
-            }
-        }
+        if (canCast && Random.value <= 0.2f)
+            StartCoroutine(CastRoutine());
     }
 
     IEnumerator CastRoutine()
     {
+        canCast = false;
         IsCast = true;
         IsWalk = false;
-        canCast = false;
         aiPath.canMove = false;
         animator.SetBool("IsCast", true);
 
-        yield return new WaitForSeconds(0.8f); // thời gian cast animation
+        yield return new WaitForSeconds(0.8f);
 
-        // Tạo object tại vị trí người chơi
         if (target != null && castPrefab != null)
         {
             GameObject obj = Instantiate(castPrefab, target.transform.position, Quaternion.identity);
-            Destroy(obj, 1f); // 🟢 Hủy object sau 1 giây
+            Destroy(obj, 1f);
         }
 
-        // Kết thúc cast
         IsCast = false;
         aiPath.canMove = true;
+        animator.SetBool("IsCast", false);
 
-        // Hồi chiêu cast
         yield return new WaitForSeconds(castCooldown);
         canCast = true;
     }
 
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (bossStat != null && bossStat.isDead) return;
+
+        if (other.CompareTag("TestAttack"))
+        {
+            if (!IsAttack && !IsCast)
+                StartCoroutine(HurtRoutine());
+            else
+                StartCoroutine(FlinchEffect());
+        }
+    }
+
+    IEnumerator FlinchEffect()
+    {
+        if (IsHurt) yield break;
+
+        IsHurt = true;
+        animator.SetTrigger("Flinch");
+
+        Vector3 startPos = transform.position;
+        transform.position += new Vector3(0.05f, 0, 0);
+        yield return new WaitForSeconds(0.1f);
+        transform.position = startPos;
+
+        IsHurt = false;
+    }
+
+    public IEnumerator HurtRoutine()
+    {
+        if (bossStat != null && bossStat.isDead) yield break;
+
+        IsHurt = true;
+        IsWalk = false;
+        aiPath.canMove = false;
+        animator.SetBool("IsHurt", true);
+
+        yield return new WaitForSeconds(0.7f);
+
+        IsHurt = false;
+        aiPath.canMove = true;
+        animator.SetBool("IsHurt", false);
+    }
 
     void UpdateAnimator()
     {
-        animator.SetBool("IsDeath", IsDeath);
         animator.SetBool("IsHurt", IsHurt);
         animator.SetBool("IsAttack", IsAttack);
         animator.SetBool("IsCast", IsCast);
