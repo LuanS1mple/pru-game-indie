@@ -13,7 +13,8 @@ public class attack : MonoBehaviour
     private float comboTimer;
     public float comboResetTime = 1f;     // reset nếu combo bị ngắt
 
-    private bool isAttacking;
+    public bool isAttacking;
+    private Transform attackpoint;  
 
     void Start()
     {
