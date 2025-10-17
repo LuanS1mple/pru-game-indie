@@ -5,8 +5,9 @@ public class attack : MonoBehaviour
 {
     public Animator ami;
     private movement moveScript;
+    private BaseStats stats;
 
-    public float attackCooldown = 0.3f;   // delay nhỏ giữa các hit
+   
     private float lastAttackTime;
 
     private int currentComboStep = 0;     // 0 = idle, 1 = Attack1, 2 = Attack2, 3 = Attack3
@@ -20,50 +21,61 @@ public class attack : MonoBehaviour
     {
         ami = GetComponent<Animator>();
         moveScript = GetComponent<movement>();
+        stats = GetComponent<BaseStats>();
     }
 
     void Update()
     {
         HandleAttack();
+       
+        // Nếu combo hết hạn → reset
         if (currentComboStep > 0 && Time.time > comboTimer)
         {
             ResetCombo();
         }
+
+        // 🔓 Nếu không còn đang tấn công → đảm bảo cho phép xoay lại
+        if (!isAttacking && moveScript != null)
+            moveScript.SetCanFlip(true);
     }
+
 
     void HandleAttack()
     {
-        if (moveScript != null && moveScript.isRolling) return;
+        if (moveScript != null && moveScript.isRolling) return; // không tấn công khi đang lăn
+        if (Time.time < lastAttackTime + stats.attackCooldown) return;
 
-        if ((Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0))
-            && Time.time >= lastAttackTime + attackCooldown)
+        if (Input.GetKeyDown(KeyCode.J) || Input.GetMouseButtonDown(0))
         {
-            // Combo logic: click tiếp thì tăng step
+            // Nếu đang ở idle (chưa combo) → bắt đầu combo
             if (currentComboStep == 0)
             {
                 PlayAttack("attack1");
                 currentComboStep = 1;
             }
-            else if (currentComboStep == 1)
+            // Nếu đang ở attack1 và người chơi bấm kịp trong thời gian combo → sang attack2
+            else if (currentComboStep == 1 && Time.time <= comboTimer)
             {
                 PlayAttack("attack2");
                 currentComboStep = 2;
             }
-            else if (currentComboStep == 2)
+            // Nếu đang ở attack2 → sang attack3
+            else if (currentComboStep == 2 && Time.time <= comboTimer)
             {
                 PlayAttack("attack3");
                 currentComboStep = 3;
             }
+            // Nếu đã combo xong (attack3) hoặc bấm quá chậm → reset combo và bắt đầu lại
             else
             {
-                // Nếu đã hết combo → reset về đòn 1
                 ResetCombo();
                 PlayAttack("attack1");
                 currentComboStep = 1;
             }
 
+            // Thiết lập thời gian cho phép combo tiếp
             lastAttackTime = Time.time;
-            comboTimer = Time.time + comboResetTime; // reset combo nếu không bấm tiếp
+            comboTimer = Time.time + comboResetTime;
         }
     }
 
@@ -72,19 +84,32 @@ public class attack : MonoBehaviour
         ami.ResetTrigger("attack1");
         ami.ResetTrigger("attack2");
         ami.ResetTrigger("attack3");
-
         ami.SetTrigger(triggerName);
+
+        if (moveScript != null)
+            moveScript.SetCanFlip(false); // ✅ đúng cách
+
         isAttacking = true;
     }
 
-    public void EndAttack() // gọi trong Animation Event
+
+    public void EndAttack()
     {
         isAttacking = false;
+        if (moveScript != null)
+            moveScript.SetCanFlip(true); // ✅ mở xoay lại
     }
+
+
+
+
+
 
     void ResetCombo()
     {
         currentComboStep = 0;
         isAttacking = false;
     }
+
+
 }
