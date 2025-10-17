@@ -8,9 +8,9 @@ public class BaseStats : MonoBehaviour
     public float currentHP;
     public float attack = 15f;
     public float defense = 5f;
-
+    public bool isInvulnerable = false; // 👈 dùng cho roll
     public bool isDead => currentHP <= 0;
-
+    public float attackCooldown = 0.3f;
     protected virtual void Awake()
     {
         currentHP = maxHP;
@@ -18,15 +18,19 @@ public class BaseStats : MonoBehaviour
 
     public virtual void TakeDamage(float damage)
     {
+        if (isInvulnerable)
+        {
+            Debug.Log($"{entityName} đang bất tử (roll) → không nhận sát thương!");
+            return;
+        }
+
         float finalDamage = Mathf.Max(1, damage - defense);
         currentHP -= finalDamage;
 
         Debug.Log($"{entityName} nhận {finalDamage} sát thương! (Còn {currentHP})");
 
         if (currentHP <= 0)
-        {
             Die();
-        }
     }
 
     protected virtual void Die()

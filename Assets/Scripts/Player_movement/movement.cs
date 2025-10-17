@@ -21,6 +21,7 @@ public class movement : MonoBehaviour
     private Rigidbody2D rb;
     private Animator animator;
 
+    private bool canFlip = true; // 👈 có được phép xoay hay không
 
 
     void Start()
@@ -32,11 +33,19 @@ public class movement : MonoBehaviour
         speed = 5f;
         jumpHeight = 17f;
         rollSpeed = 7f;
-        rollDuration = 0.4f; // time roll
-        rollCooldown = 1.5f;    // cooldown time
+        rollDuration = 0.4f;
+        rollCooldown = 1.5f;
         canRoll = true;
         isRolling = false;
+
+        // 👇 Bỏ va chạm vật lý giữa Player và Enemy vĩnh viễn
+        Physics2D.IgnoreLayerCollision(
+            LayerMask.NameToLayer("Player"),
+            LayerMask.NameToLayer("Enemy"),
+            true
+        );
     }
+
 
     void Update()
     {
@@ -109,19 +118,21 @@ public class movement : MonoBehaviour
             StartCoroutine(Roll());
         }
     }
-
     IEnumerator Roll()
     {
         canRoll = false;
         isRolling = true;
-
-        // Bật animation ngay lập tức
         animator.SetBool("isRolling", true);
 
         float rollDirection = facingRight ? 1f : -1f;
         float elapsed = 0f;
 
-        // Vừa lướt vừa chạy animation
+        // 👇 Lấy BaseStats để bật invulnerable
+        BaseStats stats = GetComponent<BaseStats>();
+        if (stats != null)
+            stats.isInvulnerable = true;
+
+        // Di chuyển khi roll
         while (elapsed < rollDuration)
         {
             rb.velocity = new Vector2(rollDirection * rollSpeed, rb.velocity.y);
@@ -133,6 +144,10 @@ public class movement : MonoBehaviour
         animator.SetBool("isRolling", false);
         isRolling = false;
 
+        // 👇 Tắt invulnerability
+        if (stats != null)
+            stats.isInvulnerable = false;
+
         // Hồi chiêu
         yield return new WaitForSeconds(rollCooldown);
         canRoll = true;
@@ -140,9 +155,12 @@ public class movement : MonoBehaviour
 
 
 
+
     // movement handling
     void HandleFacingDirection(float move)
     {
+        if (!canFlip) return; 
+
         if (move > 0 && !facingRight)
         {
             Flip();
@@ -152,6 +170,7 @@ public class movement : MonoBehaviour
             Flip();
         }
     }
+
     void Flip()
     {
         facingRight = !facingRight;
@@ -172,6 +191,10 @@ public class movement : MonoBehaviour
         rb.velocity = new Vector2(speed, rb.velocity.y);
         if (!facingRight) Flip();
         animator.SetFloat("Speed", Mathf.Abs(rb.velocity.x));
+    }
+    public void SetCanFlip(bool value)
+    {
+        canFlip = value;
     }
 
 
