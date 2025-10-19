@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 6467546487583802365}
   - component: {fileID: 6467546487583802360}
   - component: {fileID: 6467546487583802361}
+  - component: {fileID: 2118961125}
   m_Layer: 0
   m_Name: Dog
   m_TagString: Untagged
@@ -81,7 +82,7 @@ MonoBehaviour:
   radius: 0.82
   height: 2
   canMove: 1
-  maxSpeed: 1
+  maxSpeed: 2
   gravity: {x: 0, y: 0, z: 0}
   groundMask:
     serializedVersion: 2
@@ -136,7 +137,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDrag: 0
   m_AngularDrag: 0.05
-  m_GravityScale: 1
+  m_GravityScale: 0
   m_Material: {fileID: 0}
   m_Interpolate: 0
   m_SleepingMode: 1
@@ -155,6 +156,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   aiPath: {fileID: 6467546487583802362}
+--- !u!114 &2118961125
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6467546487583802367}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2d71a16daa304c4ea72d7cdaf6c98a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &6467546488570050953
 GameObject:
   m_ObjectHideFlags: 0
@@ -169,6 +182,8 @@ GameObject:
   - component: {fileID: 6467546488570050161}
   - component: {fileID: 6467546488570050174}
   - component: {fileID: 3612005153587271780}
+  - component: {fileID: 1841864240}
+  - component: {fileID: 1841864241}
   m_Layer: 0
   m_Name: dog-ilde
   m_TagString: Untagged
@@ -288,7 +303,7 @@ CircleCollider2D:
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: -0.017327309, y: 0}
@@ -311,3 +326,30 @@ MonoBehaviour:
   DetectRange: 20
   AttackRange: 10
   AttackCooldown: 3
+--- !u!114 &1841864240
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6467546488570050953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8fac29e60e20c1d449628e34d5becbf8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 50
+  IsDeath: 0
+--- !u!114 &1841864241
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6467546488570050953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6dc7a6fd00823b340a9c493c770dec60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  attackCooldown: 1

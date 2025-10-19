@@ -2,7 +2,7 @@
 
 public class BossNA : StateMachineBehaviour
 {
-    public float attackRadius = 2f;      // Bán kính vùng tấn công
+    private float attackRadius = 4f;      // Bán kính vùng tấn công
     public int damage = 20;              // Sát thương
     public LayerMask playerLayer;        // Layer của player
     private bool hasDealtDamage = false; // Đảm bảo chỉ đánh 1 lần / animation
@@ -19,8 +19,7 @@ public class BossNA : StateMachineBehaviour
             Collider2D[] hits = Physics2D.OverlapCircleAll(attackCenter, attackRadius, playerLayer);
 
             foreach (Collider2D hit in hits)
-            {
-                if (hit.CompareTag("TestAttack"))
+            {                if (hit.CompareTag("Player"))
                 {
                         Debug.LogWarning("Boss chém trúng player!");
                 }

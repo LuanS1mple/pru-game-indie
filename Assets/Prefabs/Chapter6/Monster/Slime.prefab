@@ -14,7 +14,9 @@ GameObject:
   - component: {fileID: 7773561292615092318}
   - component: {fileID: 7773561292615092315}
   - component: {fileID: 7773561292615092314}
-  m_Layer: 0
+  - component: {fileID: 85944432}
+  - component: {fileID: 85944433}
+  m_Layer: 10
   m_Name: Slime
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -136,7 +138,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDrag: 0
   m_AngularDrag: 0.05
-  m_GravityScale: 1
+  m_GravityScale: 0
   m_Material: {fileID: 0}
   m_Interpolate: 0
   m_SleepingMode: 1
@@ -155,6 +157,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   aiPath: {fileID: 7773561292615092313}
+--- !u!114 &85944432
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7773561292615092316}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2d71a16daa304c4ea72d7cdaf6c98a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &85944433
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7773561292615092316}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b0b6f50b60e3df84c97aa3f03ffdffbf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  aiPath: {fileID: 7773561292615092313}
+  groundCheck: {fileID: 0}
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  checkRadius: 0.2
+  moveSpeed: 3
 --- !u!1 &7773561293273068074
 GameObject:
   m_ObjectHideFlags: 0
@@ -169,7 +202,9 @@ GameObject:
   - component: {fileID: 7773561293273071058}
   - component: {fileID: 7773561293273071069}
   - component: {fileID: 7773561293273071068}
-  m_Layer: 0
+  - component: {fileID: 673921034}
+  - component: {fileID: 673921041}
+  m_Layer: 10
   m_Name: slimer-idle1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -288,12 +323,12 @@ CircleCollider2D:
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
-  m_Offset: {x: 0, y: -0.49576294}
+  m_Offset: {x: 0, y: -0.77931404}
   serializedVersion: 2
-  m_Radius: 0.78548706
+  m_Radius: 0.7500434
 --- !u!114 &7773561293273071068
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -309,5 +344,32 @@ MonoBehaviour:
   aiPath: {fileID: 7773561292615092313}
   Target: {fileID: 0}
   DetectRange: 6
-  AttackRange: 2
+  AttackRange: 3
   AttackCooldown: 3
+--- !u!114 &673921034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7773561293273068074}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8b09b8b01f94824ba05afd6dbca42d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 50
+  IsDeath: 0
+--- !u!114 &673921041
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7773561293273068074}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6dc7a6fd00823b340a9c493c770dec60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  attackCooldown: 1

@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
 
-public class SlimeStat : MonoBehaviour
+public class VultureStat : MonoBehaviour
 {
     [Header("Stats")]
     public int maxHealth = 50;

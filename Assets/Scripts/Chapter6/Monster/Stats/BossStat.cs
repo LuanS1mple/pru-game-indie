@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections;
 
 public class BossStat : MonoBehaviour
 {
@@ -44,6 +45,7 @@ public class BossStat : MonoBehaviour
 
     void Die()
     {
+        if (isDead) return;
         isDead = true;
 
         // Ngắt toàn bộ hành động
@@ -64,9 +66,24 @@ public class BossStat : MonoBehaviour
             bossCollider.enabled = false;
 
         // Phát animation chết
-        animator.SetTrigger("Death");
+        animator.SetBool("IsDeath",true);
 
-        // Hủy boss sau 2 giây
-        Destroy(gameObject, 2f);
+        // Chờ animation chạy xong rồi mới hủy object
+        StartCoroutine(WaitForDeathAnimation());
+    }
+
+    private IEnumerator WaitForDeathAnimation()
+    {
+        // Đợi cho đến khi animation "Death" bắt đầu
+        yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).IsName("Death"));
+
+        // Lấy thời lượng clip death
+        float deathDuration = animator.GetCurrentAnimatorStateInfo(0).length;
+
+        // Đợi hết animation
+        yield return new WaitForSeconds(deathDuration);
+
+        // Hủy object sau khi animation kết thúc
+        Destroy(gameObject);
     }
 }

@@ -12,8 +12,8 @@ public class BossBehaviors : MonoBehaviour
     public BossStat bossStat;
 
     [Header("Settings")]
-    public float attackRange = 2f;
-    public float attackCooldown = 2f;
+    public float attackRange = 5f;
+    public float attackCooldown = 1f;
     public float castCooldown = 5f;
 
     private bool canAttack = true;

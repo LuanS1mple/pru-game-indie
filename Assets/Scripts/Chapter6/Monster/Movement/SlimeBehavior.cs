@@ -97,7 +97,6 @@ public class SlimeBehavior : MonoBehaviour
 
         Debug.Log("Slime bắt đầu tấn công!");
 
-        // Lưu vị trí ban đầu của collider
         Collider2D col = GetComponent<Collider2D>();
         if (col == null)
         {
@@ -107,22 +106,18 @@ public class SlimeBehavior : MonoBehaviour
 
         Vector2 originalOffset = col.offset;
 
-        // Xác định hướng thật từ slime tới target
-        Vector2 direction = (Target.transform.position - transform.position).normalized;
+        // === Dựa trên scale để xác định hướng (EnemyGFX đã lật) ===
+        float facingDir = (transform.localScale.x < 0) ? 1f : -1f;
 
-        // Tiến collider ra theo hướng đó (0.5 đơn vị)
-        float pushDistance = 0.5f;
-        col.offset = originalOffset + direction * pushDistance;
+        float pushDistance = 0.7f;
+        col.offset = originalOffset + new Vector2(facingDir * pushDistance, 0);
 
-        Debug.Log($"Collider tiến theo hướng {direction}, offset = {col.offset}");
+        Debug.Log($"Collider tiến về phía {(facingDir > 0 ? "phải" : "trái")}, offset = {col.offset}");
 
-        // Giữ collider ở phía trước 1 giây (thời gian ra đòn)
         yield return new WaitForSeconds(1f);
 
-        // Trả collider về ban đầu
         col.offset = originalOffset;
 
-        // Kết thúc animation attack
         isAttack = false;
         isIdle = true;
         animator.SetBool("IsAttack", false);
@@ -131,6 +126,8 @@ public class SlimeBehavior : MonoBehaviour
         isAttackingNow = false;
         Debug.Log("Slime kết thúc tấn công, collider đã trở về vị trí ban đầu.");
     }
+
+
 
 
 }
