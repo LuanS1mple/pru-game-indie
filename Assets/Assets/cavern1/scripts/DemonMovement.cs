@@ -1,113 +1,102 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(Animator))]
 public class DemonMovement : MonoBehaviour
 {
-    [Header("Settings")]
+    [Header("References")]
+    public Animator animator;
+    public Rigidbody2D rb;
+    public Transform player;
+
+    [Header("Stats")]
     public float moveSpeed = 2f;
-    public float detectionRange = 5f;
-    public float attackRange = 1.5f;
-    public float attackCooldown = 1f;
-    public LayerMask playerLayer;
+    public float detectionRange = 8f;
+    public float attackRange = 2f;
+    public float attackCooldown = 1.5f;
 
-    private Rigidbody2D rb;
-    private Animator animator;
-    private Transform player;
-
-    private bool movingRight = true;
-    private bool isChasing = false;
-    private bool canAttack = true;
     private bool isAttacking = false;
+    private bool facingRight = true;
+    private float nextAttackTime = 0f;
 
     void Start()
     {
-        rb = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>();
+        if (animator == null) animator = GetComponent<Animator>();
+        if (rb == null) rb = GetComponent<Rigidbody2D>();
 
-        GameObject foundPlayer = GameObject.FindGameObjectWithTag("Player");
-        if (foundPlayer != null)
-            player = foundPlayer.transform;
+        if (player == null)
+            player = GameObject.FindGameObjectWithTag("Player")?.transform;
 
-        rb.freezeRotation = true;
+        animator.Play("DemonIdle");
     }
 
     void Update()
     {
         if (player == null) return;
 
-        float distance = Vector2.Distance(transform.position, player.position);
+        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
 
-        // Player nằm trong vùng phát hiện
-        if (distance <= detectionRange && distance > attackRange)
+        // Lật hướng về phía player
+        if (player.position.x > transform.position.x && !facingRight)
+            Flip();
+        else if (player.position.x < transform.position.x && facingRight)
+            Flip();
+
+        // Khi đang tấn công thì không xử lý logic khác
+        if (isAttacking) return;
+
+        // Nếu player trong vùng tấn công
+        if (distanceToPlayer <= attackRange)
         {
-            isChasing = true;
-            if (!isAttacking) MoveTowardsPlayer();
+            if (Time.time >= nextAttackTime)
+            {
+                StartCoroutine(AttackRoutine());
+                nextAttackTime = Time.time + attackCooldown;
+            }
+            else
+            {
+                // Nếu vẫn trong cooldown, Demon vẫn walk xung quanh player
+                MoveTowardsPlayer();
+            }
         }
-        // Player nằm trong vùng tấn công
-        else if (distance <= attackRange)
+        // Nếu player trong vùng phát hiện
+        else if (distanceToPlayer <= detectionRange)
         {
-            if (canAttack && !isAttacking)
-                StartCoroutine(AttackPlayer());
+            MoveTowardsPlayer();
         }
-        // Player ra khỏi vùng phát hiện
         else
         {
-            isChasing = false;
-            if (!isAttacking) Idle();
+            rb.velocity = Vector2.zero;
+            animator.Play("DemonIdle");
         }
     }
 
     void MoveTowardsPlayer()
     {
+        if (animator.GetCurrentAnimatorStateInfo(0).IsName("DemonAttack")) return;
+
         animator.Play("DemonWalk");
-
-        float direction = Mathf.Sign(player.position.x - transform.position.x);
-
-        // Quay mặt đúng hướng
-        if ((direction > 0 && !movingRight) || (direction < 0 && movingRight))
-            Flip();
-
-        rb.velocity = new Vector2(direction * moveSpeed, rb.velocity.y);
+        Vector2 direction = (player.position - transform.position).normalized;
+        rb.velocity = new Vector2(direction.x * moveSpeed, rb.velocity.y);
     }
 
-    IEnumerator AttackPlayer()
+    private System.Collections.IEnumerator AttackRoutine()
     {
         isAttacking = true;
-        canAttack = false;
         rb.velocity = Vector2.zero;
-
         animator.Play("DemonAttack");
 
-        yield return new WaitForSeconds(0.5f); // thời gian đánh
-        animator.Play("DemonWalk"); // sau khi đánh xong quay lại đi
+        // Giả lập thời gian tấn công
+        yield return new WaitForSeconds(0.8f);
 
-        yield return new WaitForSeconds(attackCooldown);
-        canAttack = true;
+        // Sau khi tấn công xong → trở lại Walk
         isAttacking = false;
-    }
-
-    void Idle()
-    {
-        rb.velocity = new Vector2(0, rb.velocity.y);
-        animator.Play("DemonIdle");
+        animator.Play("DemonWalk");
     }
 
     void Flip()
     {
-        movingRight = !movingRight;
+        facingRight = !facingRight;
         Vector3 scale = transform.localScale;
         scale.x *= -1;
         transform.localScale = scale;
-    }
-
-    void OnDrawGizmos()
-    {
-        Gizmos.color = Color.red; // vùng phát hiện
-        Gizmos.DrawWireSphere(transform.position, detectionRange);
-
-        Gizmos.color = Color.yellow; // vùng tấn công
-        Gizmos.DrawWireSphere(transform.position, attackRange);
     }
 }

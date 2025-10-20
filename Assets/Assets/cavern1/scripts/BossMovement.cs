@@ -1,106 +1,148 @@
-﻿using UnityEngine;
-using System.Collections;
+﻿using System.Collections;
+using UnityEngine;
 
-public class BossController : MonoBehaviour
+public class BossMovement : MonoBehaviour
 {
-    [Header("Stats")]
-    public float moveSpeed = 3f;
-    public float chaseSpeed = 5f;
-    public float attackRange = 2f;
-    public float attackCooldown = 2f;
-    public float jumpForce = 7f;
-
     [Header("References")]
-    public Transform player;
     public Animator animator;
     public Rigidbody2D rb;
+    public Transform player;
 
-    private bool isAttacking = false;
+    [Header("Stats")]
+    public float walkSpeed = 2f;
+    public float runSpeed = 5f;
+    public float jumpForce = 8f;
+    public float detectionRange = 12f;
+    public float attackRange = 2.5f;
+    public float attackCooldown = 2f;
+
     private bool facingRight = true;
+    private bool isAttacking = false;
+    private bool isGrounded = true;
     private float nextAttackTime = 0f;
 
     void Start()
     {
-        // Tự động tìm player nếu chưa gán
+        if (animator == null) animator = GetComponent<Animator>();
+        if (rb == null) rb = GetComponent<Rigidbody2D>();
+
         if (player == null)
-            player = GameObject.FindGameObjectWithTag("Player").transform;
+            player = GameObject.FindGameObjectWithTag("Player")?.transform;
 
-        if (animator == null)
-            animator = GetComponent<Animator>();
-
-        if (rb == null)
-            rb = GetComponent<Rigidbody2D>();
+        animator.Play("BossIdle");
     }
 
     void Update()
     {
-        if (player == null) return;
+        if (player == null || isAttacking) return;
 
-        float distance = Vector2.Distance(transform.position, player.position);
+        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
 
-        if (distance > attackRange)
+        // Lật hướng về phía player
+        if (player.position.x > transform.position.x && !facingRight)
+            Flip();
+        else if (player.position.x < transform.position.x && facingRight)
+            Flip();
+
+        // Player trong tầm tấn công
+        if (distanceToPlayer <= attackRange)
         {
-            ChasePlayer();
+            if (Time.time >= nextAttackTime)
+            {
+                int attackType = GetRandomAttackType();
+                StartCoroutine(AttackRoutine(attackType));
+                nextAttackTime = Time.time + attackCooldown;
+            }
+            else
+            {
+                animator.Play("BossIdle");
+                rb.velocity = Vector2.zero;
+            }
         }
+        // Player trong tầm phát hiện
+        else if (distanceToPlayer <= detectionRange)
+        {
+            MoveTowardsPlayer();
+        }
+        // Player ngoài vùng phát hiện
         else
         {
-            TryAttack();
+            animator.Play("BossIdle");
+            rb.velocity = Vector2.zero;
         }
-
-        FlipTowardsPlayer();
     }
 
-    // 🏃 Boss đuổi theo người chơi
-    private void ChasePlayer()
+    void MoveTowardsPlayer()
     {
-        if (isAttacking) return;
-
-        animator.SetBool("isRunning", true);
-
-        float direction = Mathf.Sign(player.position.x - transform.position.x);
-        rb.velocity = new Vector2(direction * chaseSpeed, rb.velocity.y);
+        animator.Play("BossWalk");
+        Vector2 direction = (player.position - transform.position).normalized;
+        rb.velocity = new Vector2(direction.x * walkSpeed, rb.velocity.y);
     }
 
-    // ⚔️ Boss tấn công khi đủ gần
-    private void TryAttack()
-    {
-        if (Time.time < nextAttackTime || isAttacking) return;
-
-        StartCoroutine(AttackRoutine());
-    }
-
-    private IEnumerator AttackRoutine()
+    IEnumerator AttackRoutine(int attackType)
     {
         isAttacking = true;
-        animator.SetBool("isRunning", false);
-        animator.SetTrigger("attack");
         rb.velocity = Vector2.zero;
 
-        // Delay 0.5s để trùng với animation đánh
-        yield return new WaitForSeconds(0.5f);
+        switch (attackType)
+        {
+            case 1: // Attack thường (60%)
+                animator.Play("BossAttack");
+                yield return new WaitForSeconds(1f);
+                break;
 
-        // (Tại đây có thể thêm logic gây sát thương nếu muốn)
+            case 2: // Run -> Attack (20%)
+                animator.Play("BossRun");
+                yield return new WaitForSeconds(0.5f);
+                RunTowardsPlayer();
+                yield return new WaitForSeconds(0.7f);
+                rb.velocity = Vector2.zero;
+                animator.Play("BossAttack");
+                yield return new WaitForSeconds(1f);
+                break;
 
-        yield return new WaitForSeconds(attackCooldown);
+            case 3: // Jump -> Attack (20%)
+                animator.Play("BossJump");
+                yield return new WaitForSeconds(0.3f);
+                Jump();
+                yield return new WaitUntil(() => isGrounded);
+                animator.Play("BossAttack");
+                yield return new WaitForSeconds(1f);
+                break;
+        }
+
+        // Quay lại trạng thái Walk
         isAttacking = false;
-        nextAttackTime = Time.time + attackCooldown;
+        animator.Play("BossWalk");
     }
 
-    // 🪶 Hướng về phía người chơi
-    private void FlipTowardsPlayer()
+    int GetRandomAttackType()
     {
-        bool playerIsRight = player.position.x > transform.position.x;
-        if (playerIsRight && !facingRight)
+        float rand = Random.value; // 0.0 - 1.0
+        if (rand < 0.6f)
+            return 1; // 60%
+        else if (rand < 0.8f)
+            return 2; // 20%
+        else
+            return 3; // 20%
+    }
+
+    void RunTowardsPlayer()
+    {
+        Vector2 direction = (player.position - transform.position).normalized;
+        rb.velocity = new Vector2(direction.x * runSpeed, rb.velocity.y);
+    }
+
+    void Jump()
+    {
+        if (isGrounded)
         {
-            Flip();
-        }
-        else if (!playerIsRight && facingRight)
-        {
-            Flip();
+            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+            isGrounded = false;
         }
     }
 
-    private void Flip()
+    void Flip()
     {
         facingRight = !facingRight;
         Vector3 scale = transform.localScale;
@@ -108,10 +150,9 @@ public class BossController : MonoBehaviour
         transform.localScale = scale;
     }
 
-    // 🦘 Boss nhảy
-    public void Jump()
+    private void OnCollisionEnter2D(Collision2D collision)
     {
-        animator.SetTrigger("jump");
-        rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+        if (collision.gameObject.CompareTag("Ground"))
+            isGrounded = true;
     }
 }
