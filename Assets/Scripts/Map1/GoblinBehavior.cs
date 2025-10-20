@@ -2,18 +2,20 @@
 using UnityEngine;
 using Pathfinding;
 
-public class GoblinBehavior : MonoBehaviour
+public class GoblinBehavior : BaseStats
 {
     [Header("References")]
     [SerializeField] private AIPath aiPath;
-    [SerializeField] private Transform target;
+    [SerializeField] private Transform target; // Player (hoặc child của player)
     [SerializeField] private Animator animator;
+
     [Header("Stats")]
     [SerializeField] private float hp = 100f;
     [SerializeField] private float detectRange = 8f;
     [SerializeField] private float attackRange = 1.0f;
     [SerializeField] private float attackCooldown = 2f;
     [SerializeField] private float attackDuration = 1.2f;
+    [SerializeField] private float attackDamage = 10f; // 💥 damage gây cho player
 
     private bool isAttacking = false;
     private bool isDead = false;
@@ -43,14 +45,11 @@ public class GoblinBehavior : MonoBehaviour
         else if (aiPath.desiredVelocity.x < -0.01f)
             transform.localScale = new Vector3(-1, 1, 1);
 
-        // --- Tính tốc độ di chuyển ---
+        // --- Tốc độ di chuyển ---
         float moveSpeed = Mathf.Abs(aiPath.desiredVelocity.x);
-        if (aiPath.reachedDestination || moveSpeed < 0.2f)
-            moveSpeed = 0;
-
         animator.SetFloat("speed", moveSpeed);
 
-        // --- Logic phát hiện & hành vi ---
+        // --- Logic hành vi ---
         if (distance <= detectRange && distance > attackRange)
         {
             aiPath.canMove = true;
@@ -76,17 +75,45 @@ public class GoblinBehavior : MonoBehaviour
         isAttacking = true;
         aiPath.canMove = false;
         animator.SetFloat("speed", 0);
-
         animator.SetTrigger("attack");
+
         Debug.Log("⚔️ Goblin Attack!");
 
-        yield return new WaitForSeconds(attackDuration);
+        // ⏳ Gây damage ở giữa thời gian đánh
+        yield return new WaitForSeconds(attackDuration * 0.5f);
+        DealDamageToPlayer();
+
+        // ⏳ chờ hết animation
+        yield return new WaitForSeconds(attackDuration * 0.5f);
 
         isAttacking = false;
         aiPath.canMove = true;
         lastAttackTime = Time.time;
     }
 
+    // 💥 Gây sát thương cho Player
+    private void DealDamageToPlayer()
+    {
+        if (target == null) return;
+
+        // Kiểm tra khoảng cách
+        float distance = Vector2.Distance(transform.position, target.position);
+        if (distance > attackRange + 0.3f) return;
+
+        // Lấy BaseStats của Player (dù Player hay con của Player)
+        BaseStats playerStats = target.GetComponentInParent<BaseStats>();
+        if (playerStats != null && !playerStats.isDead)
+        {
+            playerStats.TakeDamage(attackDamage);
+            Debug.Log($"Goblin gây {attackDamage} sát thương cho {playerStats.entityName}");
+        }
+        else
+        {
+            Debug.Log("Player không có BaseStats hoặc đã chết!");
+        }
+    }
+
+    // 💀 Nhận sát thương từ Player
     public void TakeDamage(float damage)
     {
         if (isDead) return;

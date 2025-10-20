@@ -8,15 +8,17 @@ public class WoodenAarakocraBehavior : MonoBehaviour
     [SerializeField] private AIPath aiPath;
     [SerializeField] private GameObject target;
     private Animator animator;
+    private BaseStats targetStats; // ✅ Stats của Player
 
     [Header("Ranges")]
     [SerializeField] private float detectRange = 6f;
     [SerializeField] private float attackRange = 2f;
 
     [Header("Attack Settings")]
-    [SerializeField] private float attackCooldown = 1.5f;  // thời gian nghỉ giữa các đòn
-    [SerializeField] private float attackDuration = 1.0f;   // thời gian animation đánh
-    [SerializeField] private float attackSpeed = 1.0f;      // tốc độ đánh mặc định
+    [SerializeField] private float attackCooldown = 1.5f;
+    [SerializeField] private float attackDuration = 1.0f;
+    [SerializeField] private float attackSpeed = 1.0f;
+    [SerializeField] private float damage = 15f; // ✅ Damage của quái
 
     private bool isAttacking = false;
     private bool canAttack = true;
@@ -34,16 +36,18 @@ public class WoodenAarakocraBehavior : MonoBehaviour
             aiPath = GetComponent<AIPath>();
 
         aiPath.canMove = true;
-        animator.SetFloat("AttackSpeed", attackSpeed); // tốc độ animation
+        animator.SetFloat("AttackSpeed", attackSpeed);
+
+        if (target != null)
+            targetStats = target.GetComponentInParent<BaseStats>(); // ✅ lấy BaseStats của Player
     }
 
     void Update()
     {
         if (isDead) return;
-
         animator.SetFloat("Hp", hp);
 
-        // 💀 Kiểm tra chết
+        // ☠️ Kiểm tra chết
         if (hp <= 0.01f)
         {
             StartCoroutine(DieRoutine());
@@ -54,13 +58,13 @@ public class WoodenAarakocraBehavior : MonoBehaviour
 
         float distance = Vector2.Distance(transform.position, target.transform.position);
 
-        // 🧭 Lật hướng theo hướng di chuyển
+        // 👁️ Xoay hướng
         if (aiPath.desiredVelocity.x >= 0.01f)
             transform.localScale = new Vector3(1, 1, 1);
         else if (aiPath.desiredVelocity.x <= -0.01f)
             transform.localScale = new Vector3(-1, 1, 1);
 
-        // --- Hành vi ---
+        // 🧭 Hành vi
         if (distance <= detectRange)
         {
             aiPath.destination = target.transform.position;
@@ -68,59 +72,46 @@ public class WoodenAarakocraBehavior : MonoBehaviour
             if (distance <= attackRange)
             {
                 aiPath.canMove = false;
-
                 if (!isAttacking && canAttack && !isTakingHit)
-                {
                     StartCoroutine(AttackRoutine());
-                }
             }
-            else
-            {
-                // chỉ di chuyển, không đánh
-                aiPath.canMove = true;
-            }
+            else aiPath.canMove = true;
         }
-        else
-        {
-            aiPath.canMove = false;
-        }
+        else aiPath.canMove = false;
     }
+
     IEnumerator AttackRoutine()
     {
         isAttacking = true;
         canAttack = false;
         aiPath.canMove = false;
 
-        // 🚫 Kiểm tra lại khoảng cách trước khi đánh
         float distance = Vector2.Distance(transform.position, target.transform.position);
         if (distance > attackRange)
         {
-            // Nếu target đã chạy ra xa thì huỷ tấn công
             isAttacking = false;
             canAttack = true;
             aiPath.canMove = true;
             yield break;
         }
 
-        // ⚔️ Nếu chưa đủ 3 combo → đánh thường
+        // ⚔️ Combo attack
         if (attackCount < 3)
         {
             animator.SetTrigger("trig_attack");
             attackCount++;
-            Debug.Log($"🗡️ Attack thường ({attackCount}/3)");
         }
         else
         {
-            // 🔥 Lần 4 → Special Attack
             animator.SetTrigger("trig_special");
-            Debug.Log("🔥 Special Attack!");
-            attackCount = 0; // reset combo
+            attackCount = 0;
         }
 
-        // ⏱ chờ hết animation tấn công
-        yield return new WaitForSeconds(attackDuration / attackSpeed);
+        // 🕒 Chờ đúng thời điểm chạm (ví dụ: frame 0.3s animation)
+        yield return new WaitForSeconds(0.35f);
+        DealDamageToPlayer();
 
-        // ⚙️ chờ cooldown giữa 2 đòn
+        yield return new WaitForSeconds(attackDuration / attackSpeed);
         yield return new WaitForSeconds(attackCooldown);
 
         aiPath.canMove = true;
@@ -128,15 +119,26 @@ public class WoodenAarakocraBehavior : MonoBehaviour
         isAttacking = false;
     }
 
+    // ✅ Hàm gây sát thương cho Player thật sự
+    void DealDamageToPlayer()
+    {
+        if (isDead || targetStats == null) return;
 
-    // 💥 Bị đánh trúng
+        float distance = Vector2.Distance(transform.position, target.transform.position);
+        if (distance <= attackRange)
+        {
+            targetStats.TakeDamage(damage);
+            Debug.Log($"💥 Wooden Aarakocra gây {damage} damage cho Player!");
+        }
+    }
+
+    // 💥 Bị đánh
     public void TakeDamage(float damage)
     {
         if (isTakingHit || isDead) return;
 
         hp -= damage;
         animator.SetFloat("Hp", hp);
-
         StartCoroutine(TakeHitRoutine());
     }
 
@@ -148,15 +150,12 @@ public class WoodenAarakocraBehavior : MonoBehaviour
         isTakingHit = false;
     }
 
-    // ☠️ Chết
     IEnumerator DieRoutine()
     {
         isDead = true;
         aiPath.canMove = false;
-
         animator.SetTrigger("trig_die");
-        Debug.Log("☠️ Aarakocra has died!");
-
+        Debug.Log("☠️ Wooden Aarakocra đã chết!");
         yield return new WaitForSeconds(2f);
         Destroy(gameObject);
     }

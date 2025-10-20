@@ -2,18 +2,20 @@
 using UnityEngine;
 using Pathfinding;
 
-public class FlyingEyeBehavior : MonoBehaviour
+public class FlyingEyeBehavior : BaseStats
 {
     [Header("References")]
     [SerializeField] private AIPath aiPath;
     [SerializeField] private GameObject target;
     private Animator animator;
+
     [Header("Stats")]
     [SerializeField] private float hp = 100f;
     [SerializeField] private float detectRange = 6f;
     [SerializeField] private float attackRange = 2f;
     [SerializeField] private float attackCooldown = 2f;
     [SerializeField] private float attackDuration = 1f;
+    [SerializeField] private float attackDamage = 5f;
 
     private bool isAttacking = false;
     private bool canAttack = true;
@@ -33,7 +35,7 @@ public class FlyingEyeBehavior : MonoBehaviour
     {
         if (hp <= 0.01f)
         {
-            Destroy(gameObject); // Chết khi hết máu
+            Die(); 
             return;
         }
 
@@ -77,7 +79,11 @@ public class FlyingEyeBehavior : MonoBehaviour
         animator.SetTrigger("attack");
         Debug.Log("⚔️ FlyingEye Attack!");
 
-        yield return new WaitForSeconds(attackDuration);
+        // 🕐 Gây sát thương ở giữa thời gian tấn công
+        yield return new WaitForSeconds(attackDuration * 0.5f);
+        DealDamageToPlayer();
+
+        yield return new WaitForSeconds(attackDuration * 0.5f);
 
         isAttacking = false;
 
@@ -88,12 +94,34 @@ public class FlyingEyeBehavior : MonoBehaviour
         Debug.Log("FlyingEye sẵn sàng tấn công lại!");
     }
 
-    public void TakeDamage(float damage)
+    private void DealDamageToPlayer()
+    {
+        if (target == null) return;
+
+        float distance = Vector2.Distance(transform.position, target.transform.position);
+        if (distance > attackRange + 0.5f) return;
+
+        BaseStats playerStats = target.GetComponentInParent<BaseStats>();
+        if (playerStats != null && !playerStats.isDead)
+        {
+            playerStats.TakeDamage(attackDamage);
+            Debug.Log($"FlyingEye gây {attackDamage} sát thương cho {playerStats.entityName}");
+        }
+        else
+        {
+            Debug.Log("Player không có BaseStats hoặc đã chết!");
+        }
+    }
+
+    // 🔥 Nhận sát thương từ Player
+    public override void TakeDamage(float damage)
     {
         if (isTakingHit || hp <= 0.01f) return;
 
         hp -= damage;
         animator.SetFloat("Hp", hp);
+        Debug.Log($"FlyingEye nhận {damage} sát thương! (Còn {hp})");
+
         StartCoroutine(TakeHitRoutine());
     }
 
@@ -105,5 +133,19 @@ public class FlyingEyeBehavior : MonoBehaviour
         yield return new WaitForSeconds(0.5f);
 
         isTakingHit = false;
+    }
+
+    protected override void Die()
+    {
+        Debug.Log("💀 FlyingEye đã chết!");
+        animator.SetTrigger("die");
+        aiPath.canMove = false;
+        StartCoroutine(DestroyAfterDelay());
+    }
+
+    IEnumerator DestroyAfterDelay()
+    {
+        yield return new WaitForSeconds(1.2f); 
+        Destroy(gameObject);
     }
 }
