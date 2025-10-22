@@ -32,4 +32,22 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Map_1_Snow.unity
     guid: 7b9577d68d7d1744bbca4171f96c4019
+  - enabled: 1
+    path: Assets/Scenes/Chapter6.unity
+    guid: 57259e21ab0f0d34f8bf49c53ec9898f
+  - enabled: 1
+    path: Assets/Scenes/Chapter5.unity
+    guid: 13dbddfd8a261d549808cb17cab1c0c0
+  - enabled: 1
+    path: Assets/Scenes/MapCave2.unity
+    guid: a4c9d01f9372dc244a54fea39226c90c
+  - enabled: 1
+    path: Assets/Assets/cavern1/WorldMap.unity
+    guid: a657eb17c64ae454f8f9d9410ef88db9
+  - enabled: 1
+    path: Assets/Assets/cavern1/cavern1.unity
+    guid: 9a95fe85b35b9a646ab62470fff8947e
+  - enabled: 1
+    path: Assets/Scenes/Ice2.unity
+    guid: de2866e91c1d8af4d90a6fc534f57971
   m_configObjects: {}
