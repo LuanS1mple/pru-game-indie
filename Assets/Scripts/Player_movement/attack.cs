@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class attack : MonoBehaviour
 {
+    private AudioManager audioManager;
     public Animator ami;
     private movement moveScript;
     private BaseStats stats;
@@ -22,6 +23,8 @@ public class attack : MonoBehaviour
         ami = GetComponent<Animator>();
         moveScript = GetComponent<movement>();
         stats = GetComponent<BaseStats>();
+
+        audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
     }
 
     void Update()
@@ -90,6 +93,12 @@ public class attack : MonoBehaviour
             moveScript.SetCanFlip(false); // ✅ đúng cách
 
         isAttacking = true;
+
+        //Âm thanh kiếm chém vào không khí
+        if (audioManager != null)
+        {
+            audioManager.PlaySFX(audioManager.swordMovement);
+        }
     }
 
 

@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class MiniBossHealth : MonoBehaviour
 {
+    private AudioManager audioManager;
+
     [Header("HP Settings")]
     public int maxHP = 10;
     private int currentHP;
@@ -32,6 +34,8 @@ public class MiniBossHealth : MonoBehaviour
             Debug.LogError($"[MiniBossHealth] ❌ Không tìm thấy Animator trong {name}!");
         else
             Debug.Log($"[MiniBossHealth] ✅ Animator tìm thấy: {anim.gameObject.name}");
+
+        audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
     }
 
     public void TakeDamage(int damage)
@@ -93,7 +97,11 @@ public class MiniBossHealth : MonoBehaviour
 
         if (explosionVFX != null)
             Instantiate(explosionVFX, transform.position, Quaternion.identity);
-
+        //Âm thanh quái chết
+        if (audioManager != null)
+        {
+            audioManager.PlaySFX(audioManager.monsterDeath);
+        }
         StartCoroutine(DestroyAfterDelay());
     }
 
