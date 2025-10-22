@@ -25,7 +25,7 @@ public class PlayerStats : MonoBehaviour
     public int Attack => attack;
     public int Defense => defense;
 
-    private int _lastPushedCur, _lastPushedMax;
+  
 
     // cache để tránh spam event
     private int _lastPushedCur, _lastPushedMax;
