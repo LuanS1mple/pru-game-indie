@@ -26,22 +26,22 @@ public class Waypoint : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    private void OnDrawGizmosSelected()
-    {
-        Handles.Label(transform.position + Vector3.up * 0.3f, name);
-    }
+    private void OnDrawGizmosSelected()
+    {
+        Handles.Label(transform.position + Vector3.up * 0.3f, name);
+    }
 
-    private void OnValidate()
-    {
-        // Tự động nối 2 chiều khi bạn thêm 1 node vào neighbor
-        foreach (var n in neighbors)
-        {
-            if (n != null && !n.neighbors.Contains(this))
-            {
-                n.neighbors.Add(this);
-                EditorUtility.SetDirty(n);
-            }
-        }
-    }
+    private void OnValidate()
+    {
+        // Tự động nối 2 chiều khi bạn thêm 1 node vào neighbor
+        foreach (var n in neighbors)
+        {
+            if (n != null && !n.neighbors.Contains(this))
+            {
+                n.neighbors.Add(this);
+                EditorUtility.SetDirty(n);
+            }
+        }
+    }
 #endif
 }
