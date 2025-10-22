@@ -50,14 +50,17 @@ public class PlayerCombat : MonoBehaviour
         attackCollider.enabled = false;
     }
 
-    // --- Gây sát thương ---
     private void TryDealDamage(Collider2D collision)
     {
         if (!canDealDamage) return;
-        if (!collision.CompareTag("Enemy")) return;
+
+        // ✅ Chỉ gây sát thương nếu đối tượng thuộc layer "Enemy"
+        if (collision.gameObject.layer != LayerMask.NameToLayer("Enemy")) return;
+
         if (hitEnemies.Contains(collision)) return;
 
-        BaseStats enemyStats = collision.GetComponent<BaseStats>();
+        BaseStats enemyStats = collision.GetComponentInParent<BaseStats>();
+
         if (enemyStats != null)
         {
             enemyStats.TakeDamage(playerStats.attack);
@@ -67,13 +70,13 @@ public class PlayerCombat : MonoBehaviour
             Rigidbody2D enemyRb = collision.attachedRigidbody;
             if (enemyRb != null)
             {
-                // Tính hướng knockback (hướng từ player → enemy)
+                // Tính hướng knockback (từ player → enemy)
                 Vector2 dir = (collision.transform.position - transform.position).normalized;
 
-                // Chỉ đẩy nhẹ ngang, không đẩy lên
+                // Chỉ đẩy ngang, không đẩy lên
                 dir.y = 0f;
 
-                // Giảm tốc độ bay, không bị phóng xa
+                // Reset vận tốc cũ trước khi đẩy
                 enemyRb.velocity = Vector2.zero;
                 enemyRb.AddForce(dir * knockbackForce, ForceMode2D.Impulse);
             }

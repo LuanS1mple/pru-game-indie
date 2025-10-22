@@ -1516,8 +1516,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 579fad318cede534db4bf9065b77d392, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  baseStats: {fileID: 1670791896}
+  autoPullFromBase: 1
+  pullInterval: 0.05
   maxHealth: 100
   currentHealth: 50
+--- !u!114 &1670791896 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8500761497194801829, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
+  m_PrefabInstance: {fileID: 91116581}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1670791880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f350e7e66c672c34f8fb2f562caa0d2b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1673750756
 GameObject:
   m_ObjectHideFlags: 0
