@@ -4,6 +4,14 @@ using UnityEngine;
 
 public class movement : MonoBehaviour
 {
+    //Khai báo để sử dụng âm thanh 
+    AudioManager audioManager;
+
+    private void Awake()
+    {
+        audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
+    }
+
     // Movement parameters
     public float speed;
     public float jumpHeight;
@@ -71,6 +79,15 @@ public class movement : MonoBehaviour
     {
         rb.velocity = new Vector2(move * speed, rb.velocity.y);
         animator.SetFloat("Speed", Mathf.Abs(move));
+
+        //Âm thanh player di chuyển
+        if (isGrounded && Mathf.Abs(move) > 0.1f)
+        {
+            if (!audioManager.SFXSource.isPlaying) 
+            {
+                audioManager.PlaySFX(audioManager.walk);
+            }
+        }
     }
 
     
@@ -83,6 +100,11 @@ public class movement : MonoBehaviour
             animator.SetBool("isJumping", true);
             animator.SetBool("isFalling", false);
 
+            //Âm thanh player nhảy
+            if (audioManager != null)
+            {
+                audioManager.PlaySFX(audioManager.jump);
+            }
             Debug.Log("Jump!");
         }
     }
@@ -123,6 +145,12 @@ public class movement : MonoBehaviour
         canRoll = false;
         isRolling = true;
         animator.SetBool("isRolling", true);
+
+        //Âm thanh Player lộn
+        if (audioManager != null)
+        {
+            audioManager.PlaySFX(audioManager.playerRoll);
+        }
 
         float rollDirection = facingRight ? 1f : -1f;
         float elapsed = 0f;

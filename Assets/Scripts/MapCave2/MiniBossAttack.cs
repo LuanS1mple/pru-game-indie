@@ -3,6 +3,8 @@
 
     public class MiniBossAttack : MonoBehaviour
     {
+        private AudioManager audioManager;
+
         [Header("Attack Settings")]
         public float attackCooldown = 2f;
         private float nextAttackTime;
@@ -49,6 +51,7 @@
                 CheckTriggerExists(crouchKickTrigger);
             }
 
+            audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
             DisableAllColliders();
         }
 
@@ -139,8 +142,14 @@
 
             animator.SetTrigger(triggerName);
 
-            // ✅ kiểm tra trạng thái animator sau 1 frame
-            StartCoroutine(CheckAnimationStateNextFrame(triggerName));
+            //Âm thanh quái tung chiêu
+            if (audioManager != null)
+            {
+                audioManager.PlaySFX(audioManager.monsterAttack);
+            }
+
+        // ✅ kiểm tra trạng thái animator sau 1 frame
+        StartCoroutine(CheckAnimationStateNextFrame(triggerName));
 
             EnableAttackColliderDelayed(collider, 0.15f);
         }

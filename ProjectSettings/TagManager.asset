@@ -7,6 +7,7 @@ TagManager:
   - Ground
   - Enemy
   - TestAttack
+  - Audio
   layers:
   - Default
   - TransparentFX
