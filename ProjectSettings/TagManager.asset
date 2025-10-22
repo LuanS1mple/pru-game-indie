@@ -8,6 +8,7 @@ TagManager:
   - Enemy
   - TestAttack
   - Audio
+  - Chapter6-Key
   layers:
   - Default
   - TransparentFX
