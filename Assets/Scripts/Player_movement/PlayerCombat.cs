@@ -50,12 +50,12 @@ public class PlayerCombat : MonoBehaviour
         attackCollider.enabled = false;
     }
 
-    // --- Gây sát thương ---
     private void TryDealDamage(Collider2D collision)
     {
         if (!canDealDamage) return;
 
       
+        // ✅ Chỉ gây sát thương nếu đối tượng thuộc layer "Enemy"
         if (collision.gameObject.layer != LayerMask.NameToLayer("Enemy")) return;
 
         if (hitEnemies.Contains(collision)) return;
@@ -69,6 +69,7 @@ public class PlayerCombat : MonoBehaviour
             Rigidbody2D enemyRb = collision.attachedRigidbody;
             if (enemyRb != null)
             {
+                // Tính hướng knockback (từ player → enemy)
                 Vector2 dir = (collision.transform.position - transform.position).normalized;
 
                 // Chỉ đẩy ngang, không đẩy lên
@@ -84,15 +85,18 @@ public class PlayerCombat : MonoBehaviour
     }
 
 
+
     // --- OnTrigger Events ---
     private void OnTriggerEnter2D(Collider2D collision)
     {
         TryDealDamage(collision);
+        Debug.Log("Chém trúng");
     }
 
     private void OnTriggerStay2D(Collider2D collision)
     {
         TryDealDamage(collision);
+        Debug.Log("Chém trúng");
     }
 
     private void OnDrawGizmos()

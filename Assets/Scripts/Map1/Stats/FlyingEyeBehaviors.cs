@@ -1,25 +1,26 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using System.Collections.Generic;
 using Pathfinding;
-using System.Collections;
+using UnityEngine;
 
-public class FlyingEyeBehavior : MonoBehaviour
+public class FlyingEyeBehaviors : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private AIPath aiPath;
-    [SerializeField] private GameObject target;
+    [SerializeField] private GameObject Target;
     private Animator animator;
 
     [Header("Stats")]
-    [SerializeField] private int maxHealth = 50;
+    [SerializeField] private int maxHealth = 40;
     private int currentHealth;
     private bool isDead = false;
 
     [Header("Ranges")]
-    [SerializeField] private float detectRange = 6f;
-    [SerializeField] private float attackRange = 2f;
+    [SerializeField] private float DetectRange = 6f;
+    [SerializeField] private float AttackRange = 2f;
 
     [Header("Attack Settings")]
-    [SerializeField] private float attackCooldown = 2.5f;
+    [SerializeField] private float AttackCooldown = 2.5f;
     private float lastAttackTime;
     private bool isAttackingNow = false;
 
@@ -28,46 +29,42 @@ public class FlyingEyeBehavior : MonoBehaviour
         animator = GetComponent<Animator>();
         if (aiPath == null)
             aiPath = GetComponent<AIPath>();
-
-        if (target == null)
-            target = GameObject.FindGameObjectWithTag("Player");
+        if (Target == null)
+            Target = GameObject.FindGameObjectWithTag("Player");
 
         currentHealth = maxHealth;
         aiPath.canMove = true;
-        lastAttackTime = -attackCooldown;
+        lastAttackTime = -AttackCooldown;
     }
 
     void Update()
     {
-        if (isDead || target == null) return;
+        if (isDead || Target == null) return;
 
-        float distance = Vector2.Distance(transform.position, target.transform.position);
+        float distance = Vector2.Distance(transform.position, Target.transform.position);
         float timeSinceLastAttack = Time.time - lastAttackTime;
 
-        // Nếu Player trong vùng phát hiện
-        if (distance <= detectRange && distance > attackRange)
+        // --- Hành vi di chuyển và tấn công ---
+        if (distance <= DetectRange && distance > AttackRange)
         {
             aiPath.canMove = true;
-            aiPath.destination = target.transform.position;
+            aiPath.destination = Target.transform.position;
         }
-        // Trong vùng tấn công
-        else if (distance <= attackRange)
+        else if (distance <= AttackRange)
         {
             aiPath.canMove = false;
-
-            if (!isAttackingNow && timeSinceLastAttack >= attackCooldown)
+            if (!isAttackingNow && timeSinceLastAttack >= AttackCooldown)
             {
                 StartCoroutine(AttackRoutine());
                 lastAttackTime = Time.time;
             }
         }
-        // Ngoài vùng phát hiện
         else
         {
             aiPath.canMove = false;
         }
 
-        // Lật hướng theo vận tốc
+        // --- Lật hướng theo vận tốc ---
         if (aiPath.desiredVelocity.x > 0.01f)
             transform.localScale = new Vector3(1f, 1f, 1f);
         else if (aiPath.desiredVelocity.x < -0.01f)
@@ -78,27 +75,29 @@ public class FlyingEyeBehavior : MonoBehaviour
     {
         isAttackingNow = true;
         animator.SetTrigger("attack");
-        Debug.Log("FlyingEye tấn công!");
+        Debug.Log("🦅 FlyingEye tấn công!");
 
-        yield return new WaitForSeconds(0.3f); // Thời điểm gây damage
-        DealDamageToPlayer();
+        // FlyingEye lao nhanh trong 1s
+        float originalSpeed = aiPath.maxSpeed;
+        aiPath.maxSpeed = originalSpeed * 2f;
+        aiPath.canMove = true;
 
-        yield return new WaitForSeconds(1.0f); // Thời gian nghỉ giữa 2 lần tấn công
+        float attackDuration = 1.0f;
+        float elapsed = 0f;
+        while (elapsed < attackDuration)
+        {
+            if (Target != null)
+                aiPath.destination = Target.transform.position;
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        aiPath.maxSpeed = originalSpeed;
+        aiPath.canMove = false;
         isAttackingNow = false;
     }
 
-    private void DealDamageToPlayer()
-    {
-        if (target == null) return;
-
-        float distance = Vector2.Distance(transform.position, target.transform.position);
-        if (distance <= attackRange + 0.3f)
-        {
-            Debug.Log("⚔️ FlyingEye gây 10 damage cho Player!");
-            // Bạn có thể gọi hàm TakeDamage() bên Player tại đây nếu cần
-        }
-    }
-
+    // 🩸 Bị đánh từ PlayerAttack hoặc EnemyHitbox gọi hàm này
     public void TakeDamage(int damage)
     {
         if (isDead) return;
@@ -107,12 +106,10 @@ public class FlyingEyeBehavior : MonoBehaviour
         if (currentHealth < 0) currentHealth = 0;
 
         animator.SetTrigger("takehit");
-        Debug.Log($"FlyingEye bị trúng đòn! Mất {damage} máu. Còn lại: {currentHealth}/{maxHealth}");
+        Debug.Log($"FlyingEye bị đánh! Mất {damage} HP. Còn {currentHealth}/{maxHealth}");
 
         if (currentHealth <= 0)
-        {
             Die();
-        }
     }
 
     private void Die()
@@ -121,11 +118,11 @@ public class FlyingEyeBehavior : MonoBehaviour
         isDead = true;
 
         aiPath.canMove = false;
+        animator.SetTrigger("die");
+        Debug.Log("💀 FlyingEye chết!");
+
         Collider2D col = GetComponent<Collider2D>();
         if (col != null) col.enabled = false;
-
-        animator.SetTrigger("die");
-        Debug.Log("FlyingEye chết!");
 
         StartCoroutine(DestroyAfterDeath());
     }
@@ -152,8 +149,8 @@ public class FlyingEyeBehavior : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectRange);
+        Gizmos.DrawWireSphere(transform.position, DetectRange);
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.DrawWireSphere(transform.position, AttackRange);
     }
 }
