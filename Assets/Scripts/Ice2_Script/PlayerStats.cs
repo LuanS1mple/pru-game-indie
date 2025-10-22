@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System;
 using System.Collections;
 
@@ -25,6 +25,9 @@ public class PlayerStats : MonoBehaviour
     public int Attack => attack;
     public int Defense => defense;
 
+    private int _lastPushedCur, _lastPushedMax;
+
+    // cache để tránh spam event
     private int _lastPushedCur, _lastPushedMax;
 
     void Awake()
@@ -63,6 +66,7 @@ public class PlayerStats : MonoBehaviour
         RaiseHealthChanged();
     }
 
+    // Gọi khi nhặt item tăng máu tối đa
     public void IncreaseMaxHealth(int amount, bool healToFull = true)
     {
         if (amount == 0) return;
@@ -74,6 +78,7 @@ public class PlayerStats : MonoBehaviour
         RaiseHealthChanged();
     }
 
+    // Khi HUD bị trừ máu (ví dụ bạn chủ động gọi từ đâu đó)
     public void TakeDamage(int dmg)
     {
         if (dmg <= 0) return;
@@ -157,3 +162,4 @@ public class PlayerStats : MonoBehaviour
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
 }
+
