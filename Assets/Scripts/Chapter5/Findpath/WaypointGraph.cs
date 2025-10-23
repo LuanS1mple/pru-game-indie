@@ -6,8 +6,8 @@ public class WaypointGraph : MonoBehaviour
 {
     public List<Waypoint> waypoints;
 
-    // Lấy waypoint gần nhất với vị trí
-    public Waypoint GetClosestWaypoint(Vector2 position)
+    // Lấy waypoint gần nhất với vị trí
+    public Waypoint GetClosestWaypoint(Vector2 position)
     {
         Waypoint closest = null;
         float minDist = float.MaxValue;
@@ -24,14 +24,14 @@ public class WaypointGraph : MonoBehaviour
         return closest;
     }
 
-    // 👉 Hàm này để EnemyPathFollower.cs có thể gọi
-    public Waypoint GetClosestNode(Vector2 position)
+    // 👉 Hàm này để EnemyPathFollower.cs có thể gọi
+    public Waypoint GetClosestNode(Vector2 position)
     {
         return GetClosestWaypoint(position);
     }
 
-    // Kiểm tra xem 2 waypoint có nằm trong cùng khu vực (connected region)
-    public bool AreInSameRegion(Waypoint a, Waypoint b)
+    // Kiểm tra xem 2 waypoint có nằm trong cùng khu vực (connected region)
+    public bool AreInSameRegion(Waypoint a, Waypoint b)
     {
         if (a == null || b == null) return false;
 
@@ -58,9 +58,9 @@ public class WaypointGraph : MonoBehaviour
         return false;
     }
 
-    // 👉 Thêm hàm FindPath cho EnemyPathFollower.cs
-    // Dùng BFS để tìm đường đi ngắn nhất giữa 2 waypoint
-    public List<Waypoint> FindPath(Waypoint start, Waypoint end)
+    // 👉 Thêm hàm FindPath cho EnemyPathFollower.cs
+    // Dùng BFS để tìm đường đi ngắn nhất giữa 2 waypoint
+    public List<Waypoint> FindPath(Waypoint start, Waypoint end)
     {
         if (start == null || end == null)
             return null;
@@ -90,7 +90,7 @@ public class WaypointGraph : MonoBehaviour
         }
 
         return null; // không tìm thấy đường
-    }
+    }
 
     private List<Waypoint> ReconstructPath(Dictionary<Waypoint, Waypoint> cameFrom, Waypoint start, Waypoint end)
     {
