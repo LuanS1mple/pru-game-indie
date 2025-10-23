@@ -2052,7 +2052,6 @@ MonoBehaviour:
   - {fileID: 1312901850}
   - {fileID: 694736171}
   - {fileID: 717036693}
-  waypointPrefab: {fileID: 4536190283064192725, guid: b7dcc35a7dc2fc54682c135b5d679313, type: 3}
 --- !u!4 &287419052
 Transform:
   m_ObjectHideFlags: 0
@@ -2795,10 +2794,10 @@ GameObject:
   - component: {fileID: 419961118}
   - component: {fileID: 419961117}
   - component: {fileID: 419961119}
-  - component: {fileID: 419961124}
   - component: {fileID: 419961122}
   - component: {fileID: 419961121}
   - component: {fileID: 419961120}
+  - component: {fileID: 419961123}
   m_Layer: 10
   m_Name: Enemy_Skeleton2
   m_TagString: Untagged
@@ -2953,7 +2952,7 @@ MonoBehaviour:
   detectRange: 6
   attackRange: 1.5
   chaseLimitRange: 10
---- !u!114 &419961124
+--- !u!114 &419961123
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2967,10 +2966,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   graph: {fileID: 287419051}
   target: {fileID: 898401102}
-  chaseSpeed: 2
-  patrolSpeed: 1.2
-  detectionRadius: 10
-  repathDelay: 0.1
+  chaseSpeed: 3.5
+  patrolSpeed: 1.5
+  detectionRadius: 3.61
+  waypointTolerance: 0.3
   patrolRange: 2
 --- !u!1 &473272805
 GameObject:

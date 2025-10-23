@@ -1,8 +1,8 @@
-﻿using UnityEngine;
+﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
+using UnityEngine;
 
-public class WaypointGraph : MonoBehaviour
+public class WaypointPathFind : MonoBehaviour
 {
     public List<Waypoint> waypoints;
 
@@ -92,4 +92,5 @@ public class WaypointGraph : MonoBehaviour
         path.Reverse();
         return path;
     }
+
 }
