@@ -18,7 +18,7 @@ public class EnemyPathFollower : MonoBehaviour
     public float chaseSpeed = 3.5f;
     public float patrolSpeed = 1.2f;
     public float detectionRadius = 6f;
-    public float waypointTolerance = 0.3f;
+    public float waypointTolerance = 0.5f;
 
     [Header("Patrol Settings")]
     [Tooltip("Phạm vi tuần tra (ngang) độc lập quanh điểm hiện tại.")]
@@ -27,31 +27,43 @@ public class EnemyPathFollower : MonoBehaviour
     private bool isChasing = false;
     private bool facingRight = true;
 
-    // Logic Giới hạn Waypoint
-    private Waypoint currentLimitWaypoint; // Waypoint giới hạn gần Enemy nhất
-
-    // Logic Tuần tra Độc lập
-    private Vector2 patrolCenter; // Điểm trung tâm tuần tra (Lấy từ vị trí hiện tại)
+    private Waypoint currentLimitWaypoint;
+    private Vector2 patrolCenter;
     private int patrolDirection = 1;
+
+    // === Dead-End (Idle Timer) Logic ===
+    private float deadEndTimer = 0f;
+    private float deadEndWaitTime = 3f;
+    private bool isIdleAtDeadEnd = false;
 
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
-
-        // Khởi tạo Patrol Center tại vị trí khởi đầu của Enemy
         InitializePatrolCenter((Vector2)transform.position);
     }
 
-    /// <summary>
-    /// Đặt lại điểm trung tâm tuần tra TẠI VỊ TRÍ ĐƯỢC CHỈ ĐỊNH (không cần Waypoint)
-    /// </summary>
     void InitializePatrolCenter(Vector2 position)
     {
-        // 🛑 Đặt trung tâm tuần tra là vị trí hiện tại của Enemy, bỏ qua Waypoint
         patrolCenter = position;
-        // Đặt hướng tuần tra ngẫu nhiên
         patrolDirection = (Random.value > 0.5f) ? 1 : -1;
+    }
+
+    Waypoint FindFallbackPatrolWaypoint(Vector2 currentPosition)
+    {
+        Waypoint nearest = graph.GetClosestWaypoint(currentPosition);
+        if (nearest == null) return null;
+
+        if (nearest.neighbors.Count >= 2)
+            return nearest;
+
+        foreach (var neighbor in nearest.neighbors)
+        {
+            if (neighbor != null && neighbor.neighbors.Count >= 2)
+                return neighbor;
+        }
+
+        return nearest;
     }
 
     private void Update()
@@ -67,108 +79,159 @@ public class EnemyPathFollower : MonoBehaviour
 
         if (distanceToPlayer <= detectionRadius)
         {
-            // ✅ CHASE: Target trong tầm
             if (!isChasing)
             {
                 isChasing = true;
+                currentLimitWaypoint = graph.GetClosestWaypoint(transform.position);
             }
 
-            // Cập nhật Waypoint giới hạn gần nhất (luôn cập nhật khi đuổi)
-            currentLimitWaypoint = graph.GetClosestWaypoint(transform.position);
-
-            // THỰC HIỆN LOGIC ĐUỔI THẲNG + KIỂM TRA GIỚI HẠN
             ChaseTargetWithWaypointLimit();
         }
         else
         {
-            // ❌ PATROL: Target ra khỏi tầm
             if (isChasing)
             {
                 isChasing = false;
                 rb.velocity = Vector2.zero;
 
-                // TẠO VÙNG TUẦN TRA MỚI tại vị trí dừng (VỊ TRÍ HIỆN TẠI của Enemy)
-                InitializePatrolCenter((Vector2)transform.position);
+                Waypoint fallbackPoint = FindFallbackPatrolWaypoint(transform.position);
+                if (fallbackPoint != null && fallbackPoint.neighbors.Count >= 2)
+                    InitializePatrolCenter(fallbackPoint.Position);
+                else
+                    InitializePatrolCenter((Vector2)transform.position);
             }
 
             Patrol();
         }
     }
 
-    // --- LOGIC CHASE (Đuổi Thẳng + Giới hạn Waypath) ---
-
-    /// <summary>
-    /// Đuổi thẳng đến Target, nhưng dừng lại nếu Target ở khu vực không thể tiếp cận.
-    /// </summary>
+    // === Đuổi có giới hạn + Idle 3s tại dead-end ===
     void ChaseTargetWithWaypointLimit()
     {
         Vector2 currentPos = transform.position;
+        currentLimitWaypoint = graph.GetClosestWaypoint(currentPos);
 
-        // 1. Kiểm tra giới hạn: Target có Waypoint gần không, và Waypoint đó có cùng Region với Enemy không
+        if (currentLimitWaypoint == null)
+        {
+            rb.velocity = Vector2.zero;
+            if (anim) anim.SetFloat("Speed", 0);
+            float dirX = target.position.x > transform.position.x ? 1 : -1;
+            RotateToDirection(dirX);
+            return;
+        }
+
         Waypoint targetNode = graph.GetClosestWaypoint(target.position);
         bool isTargetReachable = false;
 
-        if (targetNode != null && currentLimitWaypoint != null)
+        if (targetNode != null && graph.FindPath(currentLimitWaypoint, targetNode) != null)
+            isTargetReachable = true;
+
+        bool isDeadEndWaypoint = currentLimitWaypoint.neighbors.Count <= 1;
+
+        // ====== DEAD-END IDLE LOGIC ======
+        if (isDeadEndWaypoint)
         {
-            // Sử dụng FindPath (hoặc AreInSameRegion) để kiểm tra kết nối giữa hai Waypoint.
-            // Nếu có đường đi (path != null), Target được coi là có thể tiếp cận qua Waypath.
-            // Chúng ta không cần Path, chỉ cần biết có kết nối hay không.
-            if (graph.FindPath(currentLimitWaypoint, targetNode) != null)
+            rb.velocity = Vector2.zero;
+            if (anim) anim.SetFloat("Speed", 0);
+
+            float dirX = target.position.x > transform.position.x ? 1 : -1;
+            RotateToDirection(dirX);
+
+            // Nếu thấy player, reset thời gian chờ (vẫn đứng tại chỗ canh)
+            float distToPlayer = Vector2.Distance(transform.position, target.position);
+            if (distToPlayer <= detectionRadius)
             {
-                isTargetReachable = true;
+                deadEndTimer = 0f;
+                return;
             }
+
+            // Không thấy player => bắt đầu tính thời gian chờ
+            deadEndTimer += Time.deltaTime;
+
+            if (deadEndTimer >= deadEndWaitTime)
+            {
+                // Sau 3s, tìm waypoint có >= 2 neighbors để quay lại
+                Waypoint fallback = FindNearestMultiNeighborWaypoint(currentLimitWaypoint);
+                if (fallback != null && fallback != currentLimitWaypoint)
+                {
+                    MoveTowards(fallback.Position, chaseSpeed * 0.9f);
+
+                    float distToFallback = Vector2.Distance(currentPos, fallback.Position);
+                    if (distToFallback <= waypointTolerance)
+                    {
+                        deadEndTimer = 0f;
+                        InitializePatrolCenter(fallback.Position);
+                    }
+                }
+            }
+
+            return;
         }
 
-        // 2. Quyết định di chuyển
-        if (isTargetReachable || targetNode == null)
+        // ====== BÌNH THƯỜNG (CÓ ĐƯỜNG) ======
+        if (!isDeadEndWaypoint && isTargetReachable)
         {
-            // TH1: Target có thể tiếp cận (hoặc Target quá xa Waypoint, nên đuổi thẳng trong tầm detection)
-            // Kẻ địch ĐUỔI THẲNG TỚI TARGET
+            deadEndTimer = 0f;
             MoveTowards(target.position, chaseSpeed);
         }
         else
         {
-            // TH2: Target KHÔNG THỂ tiếp cận (Target vượt qua vực/biên Waypath)
-
-            // Kẻ địch di chuyển đến Waypoint cuối cùng có thể tiếp cận (currentLimitWaypoint) và DỪNG LẠI.
-            if (currentLimitWaypoint != null)
-            {
-                MoveTowards(currentLimitWaypoint.Position, chaseSpeed);
-                // Nếu đã đến điểm giới hạn, dừng lại
-                if (Vector2.Distance(currentPos, currentLimitWaypoint.Position) <= waypointTolerance)
-                {
-                    rb.velocity = Vector2.zero;
-                    if (anim) anim.SetFloat("Speed", 0);
-                }
-            }
-            else
-            {
-                // Không có Waypoint nào gần, chỉ đứng yên
-                rb.velocity = Vector2.zero;
-                if (anim) anim.SetFloat("Speed", 0);
-            }
+            // Không thể tới player nhưng không phải dead-end
+            rb.velocity = Vector2.zero;
+            if (anim) anim.SetFloat("Speed", 0);
+            float dir = target.position.x > transform.position.x ? 1 : -1;
+            RotateToDirection(dir);
         }
     }
 
-    // --- LOGIC PATROL (Độc lập) ---
+    /// <summary>
+    /// BFS tìm waypoint gần nhất có >= 2 neighbors (để enemy rút lui)
+    /// </summary>
+    Waypoint FindNearestMultiNeighborWaypoint(Waypoint start)
+    {
+        if (start == null || graph == null) return null;
+        if (start.neighbors.Count >= 2) return start;
 
+        Queue<Waypoint> queue = new Queue<Waypoint>();
+        HashSet<Waypoint> visited = new HashSet<Waypoint>();
+        queue.Enqueue(start);
+        visited.Add(start);
+
+        while (queue.Count > 0)
+        {
+            Waypoint current = queue.Dequeue();
+
+            foreach (var neighbor in current.neighbors)
+            {
+                if (neighbor == null || visited.Contains(neighbor)) continue;
+                visited.Add(neighbor);
+
+                if (neighbor.neighbors.Count >= 2)
+                    return neighbor;
+
+                queue.Enqueue(neighbor);
+            }
+        }
+
+        return start;
+    }
+
+    // === PATROL ===
     void Patrol()
     {
         Vector2 currentPos = transform.position;
         Vector2 targetPos = patrolCenter + Vector2.right * patrolRange * patrolDirection;
 
-        // Kiểm tra xem đã đến điểm giới hạn chưa
         if (Mathf.Abs(currentPos.x - targetPos.x) < waypointTolerance)
         {
-            patrolDirection *= -1; // đổi hướng
+            patrolDirection *= -1;
             targetPos = patrolCenter + Vector2.right * patrolRange * patrolDirection;
         }
 
         MoveTowards(targetPos, patrolSpeed);
     }
 
-    // --- HÀM HỖ TRỢ & GIZMOS (Giữ nguyên) ---
-
+    // === HỖ TRỢ ===
     void MoveTowards(Vector2 targetPos, float speed)
     {
         Vector2 currentPos = transform.position;
@@ -195,11 +258,9 @@ public class EnemyPathFollower : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        // Bán kính phát hiện
         Gizmos.color = new Color(1f, 0f, 0f, 0.25f);
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
 
-        // Vẽ vùng tuần tra độc lập
         if (!isChasing)
         {
             Gizmos.color = Color.cyan;
@@ -210,7 +271,6 @@ public class EnemyPathFollower : MonoBehaviour
             Gizmos.DrawWireSphere(pointB, 0.2f);
         }
 
-        // Vẽ Waypoint giới hạn
         if (isChasing && currentLimitWaypoint != null)
         {
             Gizmos.color = Color.yellow;

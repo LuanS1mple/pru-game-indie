@@ -90,13 +90,13 @@ public class PlayerCombat : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D collision)
     {
         TryDealDamage(collision);
-        Debug.Log("Chém trúng");
+  
     }
 
     private void OnTriggerStay2D(Collider2D collision)
     {
         TryDealDamage(collision);
-        Debug.Log("Chém trúng");
+
     }
 
     private void OnDrawGizmos()
