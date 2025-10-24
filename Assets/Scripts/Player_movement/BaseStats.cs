@@ -37,4 +37,8 @@ public class BaseStats : MonoBehaviour
     {
         Debug.Log($"{entityName} đã chết!");
     }
+    public void TakeDamage(int damage) => TakeDamage((float)damage);
+
+    public void TakeDamage(int damage, Vector2 from, float kb, float stun)
+        => TakeDamage(damage);
 }
