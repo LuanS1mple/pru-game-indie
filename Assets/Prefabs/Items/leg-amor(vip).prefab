@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1215844177389423857}
   - component: {fileID: 4461699277289338653}
   - component: {fileID: 7574805388875887880}
+  - component: {fileID: 993682313128647023}
   m_Layer: 16
   m_Name: leg-amor(vip)
   m_TagString: Item
@@ -95,7 +96,7 @@ BoxCollider2D:
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: 0.000012397766, y: 0}
@@ -111,3 +112,21 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 23.58373, y: 32}
   m_EdgeRadius: 0
+--- !u!114 &993682313128647023
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8490952499337093720}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb7d0e7aa0c5eb74aa7b0a3726e7ce5a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  type: 1
+  amount: 10
+  healToFullOnMaxUp: 1
+  iconToShow: {fileID: 21300000, guid: 608716fb89152f34594d344a65006ae3, type: 3}
+  sfx: {fileID: 0}
+  pressFIndicator: {fileID: 0}

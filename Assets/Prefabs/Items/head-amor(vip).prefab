@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 148067784776008768}
   - component: {fileID: 5186130968050022632}
   - component: {fileID: 3417257398164400662}
+  - component: {fileID: -443319622446569838}
   m_Layer: 16
   m_Name: head-amor(vip)
   m_TagString: Item
@@ -101,3 +102,21 @@ CircleCollider2D:
   m_Offset: {x: 0, y: 0}
   serializedVersion: 2
   m_Radius: 16
+--- !u!114 &-443319622446569838
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8323456887407506166}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb7d0e7aa0c5eb74aa7b0a3726e7ce5a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  type: 1
+  amount: 20
+  healToFullOnMaxUp: 1
+  iconToShow: {fileID: 21300000, guid: 334b7085edbca194d91ceafd85fa49f5, type: 3}
+  sfx: {fileID: 0}
+  pressFIndicator: {fileID: 0}

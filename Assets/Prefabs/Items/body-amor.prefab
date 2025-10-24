@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 8368643405961082216}
   - component: {fileID: 951552740152609094}
   - component: {fileID: 1923678055886565940}
+  - component: {fileID: -1232867803665792181}
   m_Layer: 16
   m_Name: body-amor
   m_TagString: Item
@@ -95,7 +96,7 @@ BoxCollider2D:
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0.63833666}
@@ -111,3 +112,21 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 32, y: 30.723328}
   m_EdgeRadius: 0
+--- !u!114 &-1232867803665792181
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7307664623043761240}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb7d0e7aa0c5eb74aa7b0a3726e7ce5a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  type: 3
+  amount: 3
+  healToFullOnMaxUp: 1
+  iconToShow: {fileID: 21300000, guid: 6ac270cb5af314a42af64960c696a8a1, type: 3}
+  sfx: {fileID: 0}
+  pressFIndicator: {fileID: 0}

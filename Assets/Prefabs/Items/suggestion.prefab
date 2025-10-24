@@ -10,9 +10,11 @@ GameObject:
   m_Component:
   - component: {fileID: 4821496932417510238}
   - component: {fileID: 3264391632686953919}
-  m_Layer: 0
+  - component: {fileID: -2901875720181518447}
+  - component: {fileID: 862894237345333730}
+  m_Layer: 17
   m_Name: suggestion
-  m_TagString: Untagged
+  m_TagString: Hint
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -84,3 +86,34 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &-2901875720181518447
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1905632581677422650}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2040b24577b017c4294c34191f649e0d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  message: You found a secret message from the boss...
+  playerTag: Player
+  thisLayer: PickupHint
+--- !u!58 &862894237345333730
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1905632581677422650}
+  m_Enabled: 1
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_UsedByComposite: 0
+  m_Offset: {x: 0, y: 0}
+  serializedVersion: 2
+  m_Radius: 16

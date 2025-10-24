@@ -1,6 +1,6 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 using Pathfinding;
-using System.Collections;
 
 public class FlyingEyeBehavior : MonoBehaviour
 {
@@ -8,20 +8,16 @@ public class FlyingEyeBehavior : MonoBehaviour
     [SerializeField] private AIPath aiPath;
     [SerializeField] private GameObject target;
     private Animator animator;
-
     [Header("Stats")]
-    [SerializeField] private int maxHealth = 50;
-    private int currentHealth;
-    private bool isDead = false;
-
-    [Header("Ranges")]
+    [SerializeField] private float hp = 100f;
     [SerializeField] private float detectRange = 6f;
     [SerializeField] private float attackRange = 2f;
+    [SerializeField] private float attackCooldown = 2f;
+    [SerializeField] private float attackDuration = 1f;
 
-    [Header("Attack Settings")]
-    [SerializeField] private float attackCooldown = 2.5f;
-    private float lastAttackTime;
-    private bool isAttackingNow = false;
+    private bool isAttacking = false;
+    private bool canAttack = true;
+    private bool isTakingHit = false;
 
     void Start()
     {
@@ -29,131 +25,85 @@ public class FlyingEyeBehavior : MonoBehaviour
         if (aiPath == null)
             aiPath = GetComponent<AIPath>();
 
-        if (target == null)
-            target = GameObject.FindGameObjectWithTag("Player");
-
-        currentHealth = maxHealth;
         aiPath.canMove = true;
-        lastAttackTime = -attackCooldown;
+        animator.SetFloat("Hp", hp);
     }
 
     void Update()
     {
-        if (isDead || target == null) return;
+        if (hp <= 0.01f)
+        {
+            Destroy(gameObject); // Chết khi hết máu
+            return;
+        }
+
+        if (target == null) return;
 
         float distance = Vector2.Distance(transform.position, target.transform.position);
-        float timeSinceLastAttack = Time.time - lastAttackTime;
 
-        // Nếu Player trong vùng phát hiện
-        if (distance <= detectRange && distance > attackRange)
-        {
-            aiPath.canMove = true;
-            aiPath.destination = target.transform.position;
-        }
-        // Trong vùng tấn công
-        else if (distance <= attackRange)
-        {
-            aiPath.canMove = false;
-
-            if (!isAttackingNow && timeSinceLastAttack >= attackCooldown)
-            {
-                StartCoroutine(AttackRoutine());
-                lastAttackTime = Time.time;
-            }
-        }
-        // Ngoài vùng phát hiện
-        else
-        {
-            aiPath.canMove = false;
-        }
-
-        // Lật hướng theo vận tốc
+        // --- Flip hướng theo vận tốc ---
         if (aiPath.desiredVelocity.x > 0.01f)
             transform.localScale = new Vector3(1f, 1f, 1f);
         else if (aiPath.desiredVelocity.x < -0.01f)
             transform.localScale = new Vector3(-1f, 1f, 1f);
+
+        // --- Logic hành vi ---
+        if (distance <= detectRange)
+        {
+            aiPath.destination = target.transform.position;
+
+            if (distance <= attackRange)
+            {
+                if (canAttack && !isAttacking && !isTakingHit)
+                    StartCoroutine(AttackRoutine());
+            }
+            else
+            {
+                aiPath.canMove = true;
+            }
+        }
+        else
+        {
+            aiPath.canMove = false;
+        }
     }
 
     IEnumerator AttackRoutine()
     {
-        isAttackingNow = true;
-        animator.SetTrigger("attack");
-        Debug.Log("FlyingEye tấn công!");
-
-        yield return new WaitForSeconds(0.3f); // Thời điểm gây damage
-        DealDamageToPlayer();
-
-        yield return new WaitForSeconds(1.0f); // Thời gian nghỉ giữa 2 lần tấn công
-        isAttackingNow = false;
-    }
-
-    private void DealDamageToPlayer()
-    {
-        if (target == null) return;
-
-        float distance = Vector2.Distance(transform.position, target.transform.position);
-        if (distance <= attackRange + 0.3f)
-        {
-            Debug.Log("⚔️ FlyingEye gây 10 damage cho Player!");
-            // Bạn có thể gọi hàm TakeDamage() bên Player tại đây nếu cần
-        }
-    }
-
-    public void TakeDamage(int damage)
-    {
-        if (isDead) return;
-
-        currentHealth -= damage;
-        if (currentHealth < 0) currentHealth = 0;
-
-        animator.SetTrigger("takehit");
-        Debug.Log($"FlyingEye bị trúng đòn! Mất {damage} máu. Còn lại: {currentHealth}/{maxHealth}");
-
-        if (currentHealth <= 0)
-        {
-            Die();
-        }
-    }
-
-    private void Die()
-    {
-        if (isDead) return;
-        isDead = true;
-
+        isAttacking = true;
+        canAttack = false;
         aiPath.canMove = false;
-        Collider2D col = GetComponent<Collider2D>();
-        if (col != null) col.enabled = false;
 
-        animator.SetTrigger("die");
-        Debug.Log("FlyingEye chết!");
+        animator.SetTrigger("attack");
+        Debug.Log("⚔️ FlyingEye Attack!");
 
-        StartCoroutine(DestroyAfterDeath());
+        yield return new WaitForSeconds(attackDuration);
+
+        isAttacking = false;
+
+        yield return new WaitForSeconds(attackCooldown);
+
+        aiPath.canMove = true;
+        canAttack = true;
+        Debug.Log("FlyingEye sẵn sàng tấn công lại!");
     }
 
-    private IEnumerator DestroyAfterDeath()
+    public void TakeDamage(float damage)
     {
-        float deathAnimLength = 0f;
-        if (animator != null && animator.runtimeAnimatorController != null)
-        {
-            foreach (var clip in animator.runtimeAnimatorController.animationClips)
-            {
-                if (clip.name.ToLower().Contains("die") || clip.name.ToLower().Contains("death"))
-                {
-                    deathAnimLength = clip.length;
-                    break;
-                }
-            }
-        }
+        if (isTakingHit || hp <= 0.01f) return;
 
-        yield return new WaitForSeconds(deathAnimLength > 0 ? deathAnimLength : 1.0f);
-        Destroy(gameObject);
+        hp -= damage;
+        animator.SetFloat("Hp", hp);
+        StartCoroutine(TakeHitRoutine());
     }
 
-    private void OnDrawGizmosSelected()
+    IEnumerator TakeHitRoutine()
     {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectRange);
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        isTakingHit = true;
+        animator.SetTrigger("takehit");
+
+        yield return new WaitForSeconds(0.5f);
+
+        isTakingHit = false;
     }
 }

@@ -10,6 +10,7 @@ TagManager:
   - Audio
   - Chapter6-Key
   - Item
+  - Hint
   layers:
   - Default
   - TransparentFX
@@ -28,7 +29,7 @@ TagManager:
   - 
   - enemy
   - Pickup
-  - 
+  - PickupHint
   - 
   - 
   - 

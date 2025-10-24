@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4240379474439404350}
   - component: {fileID: 6702246135072239701}
   - component: {fileID: 8234452257087372110}
+  - component: {fileID: -9185518649562795771}
   m_Layer: 16
   m_Name: shield(vip)
   m_TagString: Item
@@ -111,3 +112,21 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 22.425081, y: 32}
   m_EdgeRadius: 0
+--- !u!114 &-9185518649562795771
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 202697398358457689}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb7d0e7aa0c5eb74aa7b0a3726e7ce5a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  type: 3
+  amount: 5
+  healToFullOnMaxUp: 1
+  iconToShow: {fileID: 21300000, guid: 718255a38331c384085e74f65ece70ae, type: 3}
+  sfx: {fileID: 0}
+  pressFIndicator: {fileID: 0}
