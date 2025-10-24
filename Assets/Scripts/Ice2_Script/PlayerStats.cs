@@ -77,6 +77,19 @@ public class PlayerStats : MonoBehaviour
         PushHudToBase();
         RaiseHealthChanged();
     }
+    // Giảm Max HP, có thể kẹp current về max mới
+    public void DecreaseMaxHealth(int amount, bool clampCurrent = true)
+    {
+        if (amount <= 0) return;
+
+        maxHealth = Mathf.Max(1, maxHealth - amount);
+
+        if (clampCurrent)
+            currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+
+        PushHudToBase();
+        RaiseHealthChanged();
+    }
 
     // Khi HUD bị trừ máu (ví dụ bạn chủ động gọi từ đâu đó)
     public void TakeDamage(int dmg)
@@ -160,6 +173,13 @@ public class PlayerStats : MonoBehaviour
         _lastPushedCur = currentHealth;
         _lastPushedMax = maxHealth;
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
+    }
+
+    public void TakeDamage(int dmg, Vector2 from, float knockback, float stun)
+    {
+        // Nếu có i-frame riêng thì check ở đây (optional)
+        TakeDamage(dmg);          // dùng hàm int sẵn có -> HUD giảm & PushHudToBase()
+                                  // TODO: áp knockback, stun vào controller của Player nếu bạn muốn
     }
 }
 
