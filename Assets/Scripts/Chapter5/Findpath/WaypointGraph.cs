@@ -4,18 +4,40 @@ using System.Linq;
 
 public class WaypointGraph : MonoBehaviour
 {
+    // Giữ nguyên thuộc tính public này để kéo thả Waypoint đã Instantiate vào.
     public List<Waypoint> waypoints;
 
-    // Lấy waypoint gần nhất với vị trí
+    // THUỘC TÍNH MỚI: Để kéo thả Prefab Waypoint mặc định vào Inspector.
+    // Điều này chỉ hoạt động khi game KHÔNG chạy.
+    [HideInInspector] // Ẩn khỏi Inspector thông thường, chỉ hiện trong Editor tùy chỉnh
+    public GameObject waypointPrefabTemplate;
+
+    private void Awake()
+    {
+        if (waypoints == null || waypoints.Count == 0)
+        {
+            waypoints = FindObjectsOfType<Waypoint>().ToList();
+            // Debug.LogWarning("WaypointGraph: Danh sách Waypoint trống, tự động tìm thấy " + waypoints.Count + " Waypoint trong Scene.");
+        }
+        else
+        {
+            // Debug.Log("WaypointGraph: Sử dụng " + waypoints.Count + " Waypoint được thiết lập thủ công.");
+        }
+    }
+
+    // --- CÁC HÀM LOGIC CHÍNH (Giữ nguyên) ---
+
     public Waypoint GetClosestWaypoint(Vector2 position)
     {
         Waypoint closest = null;
         float minDist = float.MaxValue;
+        float maxSearchDistance = 10f;
 
         foreach (var wp in waypoints)
         {
             float dist = Vector2.Distance(position, wp.Position);
-            if (dist < minDist)
+
+            if (dist < minDist && dist < maxSearchDistance)
             {
                 minDist = dist;
                 closest = wp;
@@ -24,47 +46,17 @@ public class WaypointGraph : MonoBehaviour
         return closest;
     }
 
-    // 👉 Hàm này để EnemyPathFollower.cs có thể gọi
-    public Waypoint GetClosestNode(Vector2 position)
-    {
-        return GetClosestWaypoint(position);
-    }
-
-    // Kiểm tra xem 2 waypoint có nằm trong cùng khu vực (connected region)
-    public bool AreInSameRegion(Waypoint a, Waypoint b)
-    {
-        if (a == null || b == null) return false;
-
-        HashSet<Waypoint> visited = new HashSet<Waypoint>();
-        Queue<Waypoint> queue = new Queue<Waypoint>();
-        queue.Enqueue(a);
-        visited.Add(a);
-
-        while (queue.Count > 0)
-        {
-            var current = queue.Dequeue();
-            if (current == b)
-                return true;
-
-            foreach (var n in current.neighbors)
-            {
-                if (n != null && !visited.Contains(n))
-                {
-                    visited.Add(n);
-                    queue.Enqueue(n);
-                }
-            }
-        }
-        return false;
-    }
-
-    // 👉 Thêm hàm FindPath cho EnemyPathFollower.cs
-    // Dùng BFS để tìm đường đi ngắn nhất giữa 2 waypoint
     public List<Waypoint> FindPath(Waypoint start, Waypoint end)
     {
         if (start == null || end == null)
             return null;
 
+        if (start == end)
+        {
+            return new List<Waypoint> { start };
+        }
+
+        // Logic BFS (Giữ nguyên)
         Dictionary<Waypoint, Waypoint> cameFrom = new Dictionary<Waypoint, Waypoint>();
         Queue<Waypoint> queue = new Queue<Waypoint>();
         HashSet<Waypoint> visited = new HashSet<Waypoint>();
@@ -89,7 +81,7 @@ public class WaypointGraph : MonoBehaviour
             }
         }
 
-        return null; // không tìm thấy đường
+        return null; // Không tìm thấy đường
     }
 
     private List<Waypoint> ReconstructPath(Dictionary<Waypoint, Waypoint> cameFrom, Waypoint start, Waypoint end)
@@ -97,12 +89,16 @@ public class WaypointGraph : MonoBehaviour
         List<Waypoint> path = new List<Waypoint>();
         Waypoint current = end;
 
-        while (current != null)
+        while (current != null && current != start)
         {
             path.Add(current);
-            cameFrom.TryGetValue(current, out current);
+            if (!cameFrom.TryGetValue(current, out current))
+            {
+                return new List<Waypoint>();
+            }
         }
 
+        path.Add(start);
         path.Reverse();
         return path;
     }

@@ -33,7 +33,7 @@ public class Waypoint : MonoBehaviour
 
     private void OnValidate()
     {
-        // Tự động nối 2 chiều khi bạn thêm 1 node vào neighbor
+        // Tự động nối 2 chiều khi bạn thêm 1 node vào neighbor qua Inspector
         foreach (var n in neighbors)
         {
             if (n != null && !n.neighbors.Contains(this))

@@ -408,8 +408,8 @@ TextureImporter:
       name: tileset-sliced_2
       rect:
         serializedVersion: 2
-        x: 304
-        y: 112
+        x: 318
+        y: 68
         width: 16
         height: 16
       alignment: 0
@@ -809,12 +809,12 @@ TextureImporter:
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape:
-      - - {x: 0, y: 0}
-        - {x: -4, y: -3}
+      - - {x: 1, y: -2}
+        - {x: -3, y: -5}
         - {x: -8, y: -8}
         - {x: 8, y: -8}
-        - {x: 8, y: 3}
-        - {x: 4, y: 2}
+        - {x: 8, y: 2}
+        - {x: 4, y: 0}
       tessellationDetail: 0
       bones: []
       spriteID: 84305410000000000800000000000000
@@ -836,7 +836,7 @@ TextureImporter:
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape:
-      - - {x: -8, y: 3}
+      - - {x: -8, y: 2}
         - {x: -8, y: -8}
         - {x: 8, y: -8}
         - {x: 8, y: 8}
