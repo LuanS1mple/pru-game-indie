@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -6,9 +7,7 @@ using System.Linq;
 public class EnemyPathFollower : MonoBehaviour
 {
     [Header("References")]
-    [Tooltip("WaypointGraph chứa tất cả các Waypoint (Dùng để giới hạn phạm vi đuổi).")]
     public WaypointGraph graph;
-    [Tooltip("Transform của người chơi (Target).")]
     public Transform target;
 
     private Rigidbody2D rb;
@@ -18,28 +17,35 @@ public class EnemyPathFollower : MonoBehaviour
     public float chaseSpeed = 3.5f;
     public float patrolSpeed = 1.2f;
     public float detectionRadius = 6f;
+    [Tooltip("Khoảng cách gần nhất để coi là Enemy đã tới Waypoint/Endpoint.")]
     public float waypointTolerance = 0.5f;
 
+    [Header("Waypath Limit")]
+    [Tooltip("Khoảng cách tối đa (theo phương ngang) cho phép Enemy cách xa Waypoint gần nhất.")]
+    public float maxDistanceFromWaypointX = 1.5f;
+
+    [Header("Endpoint Wait")]
+    public float endpointWaitTime = 3f;
+
     [Header("Patrol Settings")]
-    [Tooltip("Phạm vi tuần tra (ngang) độc lập quanh điểm hiện tại.")]
     public float patrolRange = 2f;
 
     private bool isChasing = false;
     private bool facingRight = true;
+    private bool isWaiting = false;
+    private Coroutine waitCoroutine;
+    private bool hasReachedLimit = false;
+    private bool isGuardBound = false; // TRẠNG THÁI CANH GÁC: Đứng yên nhìn Player
 
     private Waypoint currentLimitWaypoint;
+    private Waypoint fallbackPatrolPoint;
     private Vector2 patrolCenter;
     private int patrolDirection = 1;
-
-    // === Dead-End (Idle Timer) Logic ===
-    private float deadEndTimer = 0f;
-    private float deadEndWaitTime = 3f;
-    private bool isIdleAtDeadEnd = false;
 
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        anim = GetComponent<Animator>();
+        if (GetComponent<Animator>() != null) anim = GetComponent<Animator>();
         InitializePatrolCenter((Vector2)transform.position);
     }
 
@@ -55,15 +61,56 @@ public class EnemyPathFollower : MonoBehaviour
         if (nearest == null) return null;
 
         if (nearest.neighbors.Count >= 2)
+        {
             return nearest;
+        }
 
         foreach (var neighbor in nearest.neighbors)
         {
             if (neighbor != null && neighbor.neighbors.Count >= 2)
+            {
                 return neighbor;
+            }
         }
-
         return nearest;
+    }
+
+    // ----------------------- CHỈNH 1 -----------------------
+    void StopWaitAndBeginChase()
+    {
+        if (waitCoroutine != null) StopCoroutine(waitCoroutine);
+        isWaiting = false;
+        isChasing = true;
+        hasReachedLimit = false;
+        isGuardBound = false;
+
+        // MỞ KHÓA DI CHUYỂN KHI BẮT ĐẦU ĐUỔI
+        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+    }
+
+    // ----------------------- CHỈNH 2 -----------------------
+    void StopWaitAndBeginPatrol()
+    {
+        if (waitCoroutine != null) StopCoroutine(waitCoroutine);
+        isWaiting = false;
+        isChasing = false;
+        rb.velocity = Vector2.zero;
+        hasReachedLimit = false;
+        isGuardBound = false;
+
+        // MỞ KHÓA DI CHUYỂN KHI QUAY LẠI TUẦN TRA
+        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+
+        fallbackPatrolPoint = FindFallbackPatrolWaypoint(transform.position);
+
+        if (fallbackPatrolPoint != null && fallbackPatrolPoint.neighbors.Count >= 2)
+        {
+            InitializePatrolCenter(fallbackPatrolPoint.Position);
+        }
+        else
+        {
+            InitializePatrolCenter((Vector2)transform.position);
+        }
     }
 
     private void Update()
@@ -81,144 +128,127 @@ public class EnemyPathFollower : MonoBehaviour
         {
             if (!isChasing)
             {
-                isChasing = true;
-                currentLimitWaypoint = graph.GetClosestWaypoint(transform.position);
+                StopWaitAndBeginChase();
+                fallbackPatrolPoint = FindFallbackPatrolWaypoint(transform.position);
             }
 
             ChaseTargetWithWaypointLimit();
         }
         else
         {
-            if (isChasing)
+            if (isChasing || isWaiting || isGuardBound)
             {
-                isChasing = false;
-                rb.velocity = Vector2.zero;
-
-                Waypoint fallbackPoint = FindFallbackPatrolWaypoint(transform.position);
-                if (fallbackPoint != null && fallbackPoint.neighbors.Count >= 2)
-                    InitializePatrolCenter(fallbackPoint.Position);
-                else
-                    InitializePatrolCenter((Vector2)transform.position);
+                StopWaitAndBeginPatrol();
             }
-
             Patrol();
         }
     }
 
-    // === Đuổi có giới hạn + Idle 3s tại dead-end ===
+    // ----------------------------------------------------------------------------------
+    // --- LOGIC CHASE (Đuổi) ---
+    // ----------------------------------------------------------------------------------
     void ChaseTargetWithWaypointLimit()
     {
         Vector2 currentPos = transform.position;
         currentLimitWaypoint = graph.GetClosestWaypoint(currentPos);
+        Waypoint targetNode = graph.GetClosestWaypoint(target.position);
+        bool isTargetReachable = (targetNode != null && graph.FindPath(currentLimitWaypoint, targetNode) != null);
 
+        float distanceToPlayer = Vector2.Distance(currentPos, target.position);
+
+        // --- 1. Nếu đang ở trạng thái "canh gác" ---
+        if (isGuardBound)
+        {
+            // Player rời xa khỏi phạm vi detection => quay về tuần tra
+            if (distanceToPlayer > detectionRadius)
+            {
+                StopWaitAndBeginPatrol();
+                return;
+            }
+
+            // Player đã quay lại vùng hợp lệ => tiếp tục chase
+            if (isTargetReachable)
+            {
+                StopWaitAndBeginChase();
+                return;
+            }
+
+            // Vẫn ở ngoài vùng => đứng yên và nhìn
+            rb.velocity = Vector2.zero;
+            if (anim) anim.SetFloat("Speed", 0);
+            RotateToDirection(target.position.x - transform.position.x);
+            return;
+        }
+
+        // --- 2. Không có waypoint hợp lệ ---
         if (currentLimitWaypoint == null)
         {
             rb.velocity = Vector2.zero;
             if (anim) anim.SetFloat("Speed", 0);
-            float dirX = target.position.x > transform.position.x ? 1 : -1;
-            RotateToDirection(dirX);
             return;
         }
 
-        Waypoint targetNode = graph.GetClosestWaypoint(target.position);
-        bool isTargetReachable = false;
+        float xDifference = Mathf.Abs(currentPos.x - currentLimitWaypoint.Position.x);
 
-        if (targetNode != null && graph.FindPath(currentLimitWaypoint, targetNode) != null)
-            isTargetReachable = true;
-
-        bool isDeadEndWaypoint = currentLimitWaypoint.neighbors.Count <= 1;
-
-        // ====== DEAD-END IDLE LOGIC ======
-        if (isDeadEndWaypoint)
+        // --- 3. Enemy vượt giới hạn ---
+        if (xDifference > maxDistanceFromWaypointX)
         {
-            rb.velocity = Vector2.zero;
-            if (anim) anim.SetFloat("Speed", 0);
-
-            float dirX = target.position.x > transform.position.x ? 1 : -1;
-            RotateToDirection(dirX);
-
-            // Nếu thấy player, reset thời gian chờ (vẫn đứng tại chỗ canh)
-            float distToPlayer = Vector2.Distance(transform.position, target.position);
-            if (distToPlayer <= detectionRadius)
-            {
-                deadEndTimer = 0f;
-                return;
-            }
-
-            // Không thấy player => bắt đầu tính thời gian chờ
-            deadEndTimer += Time.deltaTime;
-
-            if (deadEndTimer >= deadEndWaitTime)
-            {
-                // Sau 3s, tìm waypoint có >= 2 neighbors để quay lại
-                Waypoint fallback = FindNearestMultiNeighborWaypoint(currentLimitWaypoint);
-                if (fallback != null && fallback != currentLimitWaypoint)
-                {
-                    MoveTowards(fallback.Position, chaseSpeed * 0.9f);
-
-                    float distToFallback = Vector2.Distance(currentPos, fallback.Position);
-                    if (distToFallback <= waypointTolerance)
-                    {
-                        deadEndTimer = 0f;
-                        InitializePatrolCenter(fallback.Position);
-                    }
-                }
-            }
-
+            MoveTowards(currentLimitWaypoint.Position, chaseSpeed);
+            RotateToDirection(target.position.x - transform.position.x);
             return;
         }
 
-        // ====== BÌNH THƯỜNG (CÓ ĐƯỜNG) ======
-        if (!isDeadEndWaypoint && isTargetReachable)
+        // --- 4. Player trong vùng hợp lệ ---
+        if (isTargetReachable)
         {
-            deadEndTimer = 0f;
             MoveTowards(target.position, chaseSpeed);
+            if (anim) anim.SetFloat("Speed", Mathf.Abs(rb.velocity.x));
+            return;
+        }
+
+        // --- 5. Player KHÔNG nằm trong vùng hợp lệ ---
+        float distToLimit = Vector2.Distance(currentPos, currentLimitWaypoint.Position);
+
+        // ----------------------- CHỈNH 3 -----------------------
+        if (distToLimit <= waypointTolerance)
+        {
+            // DỪNG HOÀN TOÀN KHI CHẠM GIỚI HẠN
+            rb.velocity = Vector2.zero;
+            rb.constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;
+
+            // ÉP ANIMATOR VỀ IDLE
+            if (anim)
+            {
+                anim.SetFloat("Speed", 0);
+                anim.Play("idle");
+            }
+
+            // Quay hướng về phía player
+            RotateToDirection(target.position.x - transform.position.x);
+
+            // Bật trạng thái canh gác
+            isGuardBound = true;
+            return;
         }
         else
         {
-            // Không thể tới player nhưng không phải dead-end
-            rb.velocity = Vector2.zero;
-            if (anim) anim.SetFloat("Speed", 0);
-            float dir = target.position.x > transform.position.x ? 1 : -1;
-            RotateToDirection(dir);
+            MoveTowards(currentLimitWaypoint.Position, chaseSpeed);
+            RotateToDirection(target.position.x - transform.position.x);
         }
     }
 
-    /// <summary>
-    /// BFS tìm waypoint gần nhất có >= 2 neighbors (để enemy rút lui)
-    /// </summary>
-    Waypoint FindNearestMultiNeighborWaypoint(Waypoint start)
+    private IEnumerator WaitAndPatrol()
     {
-        if (start == null || graph == null) return null;
-        if (start.neighbors.Count >= 2) return start;
-
-        Queue<Waypoint> queue = new Queue<Waypoint>();
-        HashSet<Waypoint> visited = new HashSet<Waypoint>();
-        queue.Enqueue(start);
-        visited.Add(start);
-
-        while (queue.Count > 0)
-        {
-            Waypoint current = queue.Dequeue();
-
-            foreach (var neighbor in current.neighbors)
-            {
-                if (neighbor == null || visited.Contains(neighbor)) continue;
-                visited.Add(neighbor);
-
-                if (neighbor.neighbors.Count >= 2)
-                    return neighbor;
-
-                queue.Enqueue(neighbor);
-            }
-        }
-
-        return start;
+        isWaiting = true;
+        yield return new WaitForSeconds(endpointWaitTime);
+        isWaiting = false;
+        waitCoroutine = null;
     }
 
-    // === PATROL ===
     void Patrol()
     {
+        if (isWaiting || isGuardBound) return;
+
         Vector2 currentPos = transform.position;
         Vector2 targetPos = patrolCenter + Vector2.right * patrolRange * patrolDirection;
 
@@ -231,11 +261,11 @@ public class EnemyPathFollower : MonoBehaviour
         MoveTowards(targetPos, patrolSpeed);
     }
 
-    // === HỖ TRỢ ===
     void MoveTowards(Vector2 targetPos, float speed)
     {
         Vector2 currentPos = transform.position;
         Vector2 dir = (targetPos - currentPos).normalized;
+
         rb.velocity = new Vector2(dir.x * speed, rb.velocity.y);
 
         RotateToDirection(dir.x);
@@ -261,7 +291,20 @@ public class EnemyPathFollower : MonoBehaviour
         Gizmos.color = new Color(1f, 0f, 0f, 0.25f);
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
 
-        if (!isChasing)
+        if (currentLimitWaypoint != null)
+        {
+            Vector3 waypointPos3D = currentLimitWaypoint.Position;
+
+            Gizmos.color = new Color(1f, 0.5f, 0f, 0.5f);
+
+            Vector3 limitLeft = waypointPos3D + Vector3.left * maxDistanceFromWaypointX;
+            Vector3 limitRight = waypointPos3D + Vector3.right * maxDistanceFromWaypointX;
+
+            Gizmos.DrawLine(limitLeft + Vector3.up * 10f, limitLeft + Vector3.down * 10f);
+            Gizmos.DrawLine(limitRight + Vector3.up * 10f, limitRight + Vector3.down * 10f);
+        }
+
+        if (!isChasing && !isWaiting && !isGuardBound)
         {
             Gizmos.color = Color.cyan;
             Vector2 pointA = patrolCenter + Vector2.right * patrolRange;
@@ -276,6 +319,12 @@ public class EnemyPathFollower : MonoBehaviour
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(currentLimitWaypoint.Position, 0.5f);
             Gizmos.DrawLine(transform.position, currentLimitWaypoint.Position);
+
+            if (fallbackPatrolPoint != null && currentLimitWaypoint != fallbackPatrolPoint)
+            {
+                Gizmos.color = Color.green;
+                Gizmos.DrawWireSphere(fallbackPatrolPoint.Position, 0.4f);
+            }
         }
     }
 }
