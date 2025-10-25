@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using UnityEngine;
 
 public class SlimeStat : MonoBehaviour
@@ -84,5 +85,10 @@ public class SlimeStat : MonoBehaviour
         {
             Destroy(gameObject);
         }
+    }
+
+    internal int GetCurrentHealth()
+    {
+        return currentHealth;
     }
 }

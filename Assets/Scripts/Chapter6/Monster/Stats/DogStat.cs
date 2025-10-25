@@ -25,6 +25,10 @@ public class DogStat : MonoBehaviour
             animator.SetBool("IsDeath", true);
         }
     }
+    public int GetCurrentHealth()
+    {
+        return currentHealth;
+    }
 
     // Gọi khi bị tấn công
     private void OnTriggerEnter2D(Collider2D collision)
