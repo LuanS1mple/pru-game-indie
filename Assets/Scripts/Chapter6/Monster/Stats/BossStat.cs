@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System;
 
 public class BossStat : MonoBehaviour
 {
@@ -85,5 +86,10 @@ public class BossStat : MonoBehaviour
 
         // Hủy object sau khi animation kết thúc
         Destroy(gameObject);
+    }
+
+    internal int GetCurrentHealth()
+    {
+        return currentHP;
     }
 }

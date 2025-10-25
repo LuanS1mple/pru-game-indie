@@ -88,7 +88,7 @@ GameObject:
   - component: {fileID: 1668697566251362975}
   - component: {fileID: 1093962587543213017}
   - component: {fileID: 4903018215665727084}
-  - component: {fileID: 654621031}
+  - component: {fileID: 236092655}
   m_Layer: 5
   m_Name: EnemyHealthBar
   m_TagString: Untagged
@@ -180,7 +180,7 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!114 &654621031
+--- !u!114 &236092655
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -189,7 +189,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 2844218511528927700}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c3d5e165cbff2e8448672af4af3a908e, type: 3}
+  m_Script: {fileID: 11500000, guid: 14abb8cf5ac0c404297f48517dae5f9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   followTarget: {fileID: 0}
@@ -198,7 +198,7 @@ MonoBehaviour:
   canvas: {fileID: 1668697566251362975}
   hideWhenFull: 1
   showSecondsAfterHit: 2
-  vultureStat: {fileID: 0}
+  slimeStat: {fileID: 0}
 --- !u!1 &5910993449704253637
 GameObject:
   m_ObjectHideFlags: 0

@@ -13,7 +13,6 @@ public class MonsterAttack : MonoBehaviour
     {
         // chỉ xét nếu collider thuộc playerLayer
         if (((1 << collision.gameObject.layer) & playerLayer) == 0) return;
-
         if (Time.time - lastAttackTime >= attackCooldown)
         {
             lastAttackTime = Time.time;
