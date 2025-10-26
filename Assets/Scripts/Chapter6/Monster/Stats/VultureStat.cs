@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using UnityEngine;
 
 public class VultureStat : MonoBehaviour
@@ -84,5 +85,10 @@ public class VultureStat : MonoBehaviour
         {
             Destroy(gameObject);
         }
+    }
+
+    internal int GetCurrentHealth()
+    {
+        return currentHealth;
     }
 }

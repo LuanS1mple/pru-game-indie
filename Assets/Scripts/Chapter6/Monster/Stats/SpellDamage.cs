@@ -37,7 +37,8 @@ public class SpellDamage : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            Debug.LogWarning("Chiêu trúng!");
+            BaseStats baseStats = other.GetComponent<BaseStats>();
+            baseStats.TakeDamage(20);
         }
     }
 }

@@ -19,9 +19,11 @@ public class BossNA : StateMachineBehaviour
             Collider2D[] hits = Physics2D.OverlapCircleAll(attackCenter, attackRadius, playerLayer);
 
             foreach (Collider2D hit in hits)
-            {                if (hit.CompareTag("Player"))
+            {                
+                if (hit.CompareTag("Player"))
                 {
-                        Debug.LogWarning("Boss chém trúng player!");
+                    BaseStats baseStats  = hit.GetComponent<BaseStats>();
+                    baseStats.TakeDamage(damage);
                 }
             }
 
