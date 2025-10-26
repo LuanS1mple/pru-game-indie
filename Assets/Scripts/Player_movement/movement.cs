@@ -7,10 +7,7 @@ public class movement : MonoBehaviour
     //Khai báo để sử dụng âm thanh 
     AudioManager audioManager;
 
-    private void Awake()
-    {
-        audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
-    }
+   
 
     // Movement parameters
     public float speed;
@@ -30,7 +27,15 @@ public class movement : MonoBehaviour
     private Animator animator;
 
     private bool canFlip = true; // 👈 có được phép xoay hay không
-
+    private BaseStats playerStats;
+    private void Awake()
+    {
+        audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
+        rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
+        // ⭐ THÊM MỚI: Lấy component BaseStats
+        playerStats = GetComponent<BaseStats>();
+    }
 
     void Start()
     {
@@ -57,7 +62,7 @@ public class movement : MonoBehaviour
 
     void Update()
     {
-
+        if (playerStats != null && playerStats.isDead) return;
         if (isRolling) return;// when rolling, ignore other inputs
         float move = Input.GetAxis("Horizontal");
         HandleMovement(move);
@@ -111,8 +116,13 @@ public class movement : MonoBehaviour
 
     void FixedUpdate()
     {
+        // ⭐ SỬA: Kiểm tra isDead trước khi cập nhật isGrounded
+        if (playerStats != null && playerStats.isDead)
+        {
+            isGrounded = false; // Coi như không đứng trên đất khi chết
+            return;
+        }
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, 0.25f, groundLayer);
-
     }
     void HandleFalling()
     {
@@ -206,16 +216,19 @@ public class movement : MonoBehaviour
         scaler.x *= -1;
         transform.localScale = scaler;
     }
-  
+
     public void MoveLeft()
     {
+        // ⭐ THÊM KIỂM TRA: Không di chuyển khi chết
+        if (playerStats != null && playerStats.isDead) return;
         rb.velocity = new Vector2(-speed, rb.velocity.y);
         if (facingRight) Flip();
         animator.SetFloat("Speed", Mathf.Abs(rb.velocity.x));
     }
-
     public void MoveRight()
     {
+        // ⭐ THÊM KIỂM TRA: Không di chuyển khi chết
+        if (playerStats != null && playerStats.isDead) return;
         rb.velocity = new Vector2(speed, rb.velocity.y);
         if (!facingRight) Flip();
         animator.SetFloat("Speed", Mathf.Abs(rb.velocity.x));
@@ -223,6 +236,34 @@ public class movement : MonoBehaviour
     public void SetCanFlip(bool value)
     {
         canFlip = value;
+    }
+    public void PlayHitAnimation()
+    {
+        // Đảm bảo animator tồn tại và player chưa chết
+        if (animator != null && (playerStats == null || !playerStats.isDead))
+        {
+            animator.SetTrigger("hit");
+            Debug.Log("Player triggered Hit animation!"); // Thêm log để kiểm tra
+        }
+    }
+
+    // Hàm này sẽ được gọi từ BaseStats khi chết
+    public void HandleDeath()
+    {
+        if (animator != null)
+        {
+            animator.SetTrigger("dead");
+            Debug.Log("Player triggered Dead animation!"); // Thêm log để kiểm tra
+        }
+
+        // Dừng di chuyển hoàn toàn và tắt script này
+        rb.velocity = Vector2.zero;
+        rb.simulated = false; // Tắt hoàn toàn vật lý
+        this.enabled = false; // Tắt script movement này đi
+
+        // Tùy chọn: Tắt collider
+        Collider2D col = GetComponent<Collider2D>();
+        if (col != null) col.enabled = false;
     }
 
 

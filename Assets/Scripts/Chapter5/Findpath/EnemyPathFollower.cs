@@ -4,67 +4,64 @@ using System.Collections.Generic;
 using System.Linq;
 
 [RequireComponent(typeof(Rigidbody2D))]
-public class EnemyPathFollower : MonoBehaviour
+public class EnemyPathFollower : BaseStats
 {
+    // ... (Giữ nguyên các biến) ...
     [Header("References")]
     public WaypointGraph graph;
     public Transform target;
-
     private Rigidbody2D rb;
     private Animator anim;
-
     [Header("Movement Settings")]
     public float chaseSpeed = 3.5f;
     public float patrolSpeed = 1.2f;
     public float detectionRadius = 6f;
-    [Tooltip("Khoảng cách gần nhất để coi là Enemy đã tới Waypoint/Endpoint.")]
     public float waypointTolerance = 0.5f;
-
+    [Header("Attack Settings")]
+    public float attackRange = 1.5f;
+    public Collider2D attackCollider;
+    public float knockbackForce = 3f;
     [Header("Waypath Limit")]
-    [Tooltip("Khoảng cách tối đa (theo phương ngang) cho phép Enemy cách xa Waypoint gần nhất.")]
     public float maxDistanceFromWaypointX = 1.5f;
-
     [Header("Endpoint Wait")]
     public float endpointWaitTime = 3f;
-
     [Header("Patrol Settings")]
     public float patrolRange = 2f;
-
     private bool isChasing = false;
     private bool facingRight = true;
     private bool isWaiting = false;
     private Coroutine waitCoroutine;
-    private bool hasReachedLimit = false;
-    private bool isGuardBound = false; // TRẠNG THÁI CANH GÁC: Đứng yên nhìn Player
-
+    private bool isGuardBound = false;
+    private bool isAttacking = false;
+    private Coroutine attackCoroutine;
+    private bool canDealDamage = false;
+    private HashSet<Collider2D> hitPlayers = new HashSet<Collider2D>();
     private Waypoint currentLimitWaypoint;
     private Waypoint fallbackPatrolPoint;
     private Vector2 patrolCenter;
     private int patrolDirection = 1;
 
-    private void Start()
+
+    // ... (Giữ nguyên Awake, InitializePatrolCenter, FindFallbackPatrolWaypoint) ...
+    protected override void Awake()
     {
+        base.Awake();
         rb = GetComponent<Rigidbody2D>();
         if (GetComponent<Animator>() != null) anim = GetComponent<Animator>();
         InitializePatrolCenter((Vector2)transform.position);
+        if (attackCollider != null)
+            attackCollider.enabled = false;
     }
-
     void InitializePatrolCenter(Vector2 position)
     {
         patrolCenter = position;
         patrolDirection = (Random.value > 0.5f) ? 1 : -1;
     }
-
     Waypoint FindFallbackPatrolWaypoint(Vector2 currentPosition)
     {
         Waypoint nearest = graph.GetClosestWaypoint(currentPosition);
         if (nearest == null) return null;
-
-        if (nearest.neighbors.Count >= 2)
-        {
-            return nearest;
-        }
-
+        if (nearest.neighbors.Count >= 2) return nearest;
         foreach (var neighbor in nearest.neighbors)
         {
             if (neighbor != null && neighbor.neighbors.Count >= 2)
@@ -75,34 +72,29 @@ public class EnemyPathFollower : MonoBehaviour
         return nearest;
     }
 
-    // ----------------------- CHỈNH 1 -----------------------
+
+    // ... (Giữ nguyên StopWaitAndBeginChase, StopWaitAndBeginPatrol) ...
     void StopWaitAndBeginChase()
     {
+        if (attackCoroutine != null) StopCoroutine(attackCoroutine);
+        isAttacking = false;
         if (waitCoroutine != null) StopCoroutine(waitCoroutine);
         isWaiting = false;
         isChasing = true;
-        hasReachedLimit = false;
         isGuardBound = false;
-
-        // MỞ KHÓA DI CHUYỂN KHI BẮT ĐẦU ĐUỔI
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
     }
-
-    // ----------------------- CHỈNH 2 -----------------------
     void StopWaitAndBeginPatrol()
     {
+        if (attackCoroutine != null) StopCoroutine(attackCoroutine);
+        isAttacking = false;
         if (waitCoroutine != null) StopCoroutine(waitCoroutine);
         isWaiting = false;
         isChasing = false;
         rb.velocity = Vector2.zero;
-        hasReachedLimit = false;
         isGuardBound = false;
-
-        // MỞ KHÓA DI CHUYỂN KHI QUAY LẠI TUẦN TRA
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
-
         fallbackPatrolPoint = FindFallbackPatrolWaypoint(transform.position);
-
         if (fallbackPatrolPoint != null && fallbackPatrolPoint.neighbors.Count >= 2)
         {
             InitializePatrolCenter(fallbackPatrolPoint.Position);
@@ -113,17 +105,34 @@ public class EnemyPathFollower : MonoBehaviour
         }
     }
 
+
+    // ... (Giữ nguyên Update, StartAttack, AttackRoutine) ...
     private void Update()
     {
+        if (isDead || isAttacking)
+        {
+            rb.velocity = Vector2.zero;
+            if (!isAttacking)
+                if (anim) anim.SetFloat("Speed", 0);
+            if (isAttacking && target)
+                RotateToDirection(target.position.x - transform.position.x);
+            return;
+        }
         if (target == null || graph == null)
         {
+            if (isGuardBound) StopWaitAndBeginPatrol();
             rb.velocity = Vector2.zero;
             if (anim) anim.SetFloat("Speed", 0);
             return;
         }
-
         float distanceToPlayer = Vector2.Distance(transform.position, target.position);
-
+        if (isChasing && distanceToPlayer <= attackRange)
+        {
+            rb.velocity = Vector2.zero;
+            if (anim) anim.SetFloat("Speed", 0);
+            StartAttack();
+            return;
+        }
         if (distanceToPlayer <= detectionRadius)
         {
             if (!isChasing)
@@ -131,7 +140,6 @@ public class EnemyPathFollower : MonoBehaviour
                 StopWaitAndBeginChase();
                 fallbackPatrolPoint = FindFallbackPatrolWaypoint(transform.position);
             }
-
             ChaseTargetWithWaypointLimit();
         }
         else
@@ -143,100 +151,160 @@ public class EnemyPathFollower : MonoBehaviour
             Patrol();
         }
     }
+    void StartAttack()
+    {
+        if (isAttacking) return;
 
-    // ----------------------------------------------------------------------------------
-    // --- LOGIC CHASE (Đuổi) ---
-    // ----------------------------------------------------------------------------------
+        attackCoroutine = StartCoroutine(AttackRoutine());
+    }
+    private IEnumerator AttackRoutine()
+    {
+        isAttacking = true;
+        rb.velocity = Vector2.zero;
+        if (anim) anim.SetFloat("Speed", 0);
+        if (target != null)
+            RotateToDirection(target.position.x - transform.position.x);
+        if (anim) anim.SetTrigger("Attack");
+        yield return new WaitForSeconds(attackCooldown);
+        isAttacking = false;
+        attackCoroutine = null;
+    }
+
+
+    // ⭐⭐⭐ LOGIC TẤN CÔNG (ĐÃ ĐỔI TÊN HÀM) ⭐⭐⭐
+
+    // --- Animation Event: Bắt đầu khung sát thương ---
+    // SỬ DỤNG HÀM NÀY:
+    public void HandleAnimation_EnableAttackCollider()
+    {
+        if (attackCollider == null) return;
+        Debug.Log($"[{entityName}] --- BẬT Hitbox Tấn công!", this.gameObject);
+        canDealDamage = true;
+        hitPlayers.Clear();
+        StartCoroutine(RefreshCollider());
+    }
+
+    IEnumerator RefreshCollider()
+    {
+        attackCollider.enabled = false;
+        yield return null;
+        Vector3 originalPos = attackCollider.transform.localPosition;
+        attackCollider.transform.localPosition += new Vector3(0.01f, 0, 0);
+        attackCollider.enabled = true;
+        yield return null;
+        attackCollider.transform.localPosition = originalPos;
+    }
+
+    // --- Animation Event: Kết thúc khung sát thương ---
+    // SỬ DỤNG HÀM NÀY:
+    public void HandleAnimation_DisableAttackCollider()
+    {
+        if (attackCollider == null) return;
+        Debug.Log($"[{entityName}] --- TẮT Hitbox Tấn công.", this.gameObject);
+        canDealDamage = false;
+        attackCollider.enabled = false;
+    }
+
+    // --- HÀM CŨ (Đã đổi tên) ---
+    // public void AnimationEvent_EnableAttackCollider() { ... }
+    // public void AnimationEvent_DisableAttackCollider() { ... }
+
+
+    // ... (Giữ nguyên TryDealDamage, OnTriggerEnter2D, OnTriggerStay2D) ...
+    private void TryDealDamage(Collider2D collision)
+    {
+        if (!canDealDamage) return;
+        if (collision.gameObject.layer != LayerMask.NameToLayer("Player")) return;
+        if (hitPlayers.Contains(collision)) return;
+        BaseStats playerStats = collision.GetComponentInParent<BaseStats>();
+        if (playerStats != null)
+        {
+            playerStats.TakeDamage(attack);
+            hitPlayers.Add(collision);
+            Debug.Log($"[{entityName}] đã đánh trúng Player ({collision.name})! Gây {attack} sát thương.");
+            Rigidbody2D playerRb = collision.attachedRigidbody;
+            if (playerRb != null)
+            {
+                Vector2 dir = (collision.transform.position - transform.position).normalized;
+                dir.y = 0f;
+                playerRb.velocity = Vector2.zero;
+                playerRb.AddForce(dir * knockbackForce, ForceMode2D.Impulse);
+            }
+        }
+    }
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        TryDealDamage(collision);
+    }
+    private void OnTriggerStay2D(Collider2D collision)
+    {
+        TryDealDamage(collision);
+    }
+
+
+    // ⭐⭐⭐ LOGIC HÀM GỐC (ĐỂ TRÁNH LỖI) ⭐⭐⭐
+
+    // HÀM MỚI: Dùng hàm này trong Animation "Dead" (nếu bạn cần gọi Die() từ animation)
+    public void HandleAnimation_TriggerDie()
+    {
+        Die(); // Gọi hàm Die() đã có
+    }
+
+    // HÀM MỚI: Dùng hàm này nếu bạn muốn animation tự gây sát thương
+    public void HandleAnimation_TriggerTakeDamage(float damage)
+    {
+        TakeDamage(damage); // Gọi hàm TakeDamage() đã có
+    }
+
+    // ... (Giữ nguyên ChaseTargetWithWaypointLimit, Patrol, MoveTowards, RotateToDirection) ...
     void ChaseTargetWithWaypointLimit()
     {
         Vector2 currentPos = transform.position;
         currentLimitWaypoint = graph.GetClosestWaypoint(currentPos);
-        Waypoint targetNode = graph.GetClosestWaypoint(target.position);
-        bool isTargetReachable = (targetNode != null && graph.FindPath(currentLimitWaypoint, targetNode) != null);
-
-        float distanceToPlayer = Vector2.Distance(currentPos, target.position);
-
-        // --- 1. Nếu đang ở trạng thái "canh gác" ---
-        if (isGuardBound)
-        {
-            // Player rời xa khỏi phạm vi detection => quay về tuần tra
-            if (distanceToPlayer > detectionRadius)
-            {
-                StopWaitAndBeginPatrol();
-                return;
-            }
-
-            // Player đã quay lại vùng hợp lệ => tiếp tục chase
-            if (isTargetReachable)
-            {
-                StopWaitAndBeginChase();
-                return;
-            }
-
-            // Vẫn ở ngoài vùng => đứng yên và nhìn
-            rb.velocity = Vector2.zero;
-            if (anim) anim.SetFloat("Speed", 0);
-            RotateToDirection(target.position.x - transform.position.x);
-            return;
-        }
-
-        // --- 2. Không có waypoint hợp lệ ---
         if (currentLimitWaypoint == null)
         {
             rb.velocity = Vector2.zero;
             if (anim) anim.SetFloat("Speed", 0);
             return;
         }
-
+        Waypoint targetNode = graph.GetClosestWaypoint(target.position);
+        bool isTargetReachable = (targetNode != null && graph.FindPath(currentLimitWaypoint, targetNode) != null);
+        if (isTargetReachable)
+        {
+            isGuardBound = false;
+        }
+        else
+        {
+            isGuardBound = true;
+        }
+        if (isGuardBound)
+        {
+            float distToLimit = Vector2.Distance(currentPos, currentLimitWaypoint.Position);
+            if (distToLimit > waypointTolerance)
+            {
+                rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+                MoveTowards(currentLimitWaypoint.Position, chaseSpeed);
+                RotateToDirection(target.position.x - transform.position.x);
+            }
+            else
+            {
+                rb.velocity = Vector2.zero;
+                rb.constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;
+                if (anim) anim.SetFloat("Speed", 0);
+                RotateToDirection(target.position.x - transform.position.x);
+            }
+            return;
+        }
+        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
         float xDifference = Mathf.Abs(currentPos.x - currentLimitWaypoint.Position.x);
-
-        // --- 3. Enemy vượt giới hạn ---
         if (xDifference > maxDistanceFromWaypointX)
         {
             MoveTowards(currentLimitWaypoint.Position, chaseSpeed);
             RotateToDirection(target.position.x - transform.position.x);
             return;
         }
-
-        // --- 4. Player trong vùng hợp lệ ---
-        if (isTargetReachable)
-        {
-            MoveTowards(target.position, chaseSpeed);
-            if (anim) anim.SetFloat("Speed", Mathf.Abs(rb.velocity.x));
-            return;
-        }
-
-        // --- 5. Player KHÔNG nằm trong vùng hợp lệ ---
-        float distToLimit = Vector2.Distance(currentPos, currentLimitWaypoint.Position);
-
-        // ----------------------- CHỈNH 3 -----------------------
-        if (distToLimit <= waypointTolerance)
-        {
-            // DỪNG HOÀN TOÀN KHI CHẠM GIỚI HẠN
-            rb.velocity = Vector2.zero;
-            rb.constraints = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezeRotation;
-
-            // ÉP ANIMATOR VỀ IDLE
-            if (anim)
-            {
-                anim.SetFloat("Speed", 0);
-                anim.Play("idle");
-            }
-
-            // Quay hướng về phía player
-            RotateToDirection(target.position.x - transform.position.x);
-
-            // Bật trạng thái canh gác
-            isGuardBound = true;
-            return;
-        }
-        else
-        {
-            MoveTowards(currentLimitWaypoint.Position, chaseSpeed);
-            RotateToDirection(target.position.x - transform.position.x);
-        }
+        MoveTowards(target.position, chaseSpeed);
     }
-
     private IEnumerator WaitAndPatrol()
     {
         isWaiting = true;
@@ -244,34 +312,26 @@ public class EnemyPathFollower : MonoBehaviour
         isWaiting = false;
         waitCoroutine = null;
     }
-
     void Patrol()
     {
         if (isWaiting || isGuardBound) return;
-
         Vector2 currentPos = transform.position;
         Vector2 targetPos = patrolCenter + Vector2.right * patrolRange * patrolDirection;
-
         if (Mathf.Abs(currentPos.x - targetPos.x) < waypointTolerance)
         {
             patrolDirection *= -1;
             targetPos = patrolCenter + Vector2.right * patrolRange * patrolDirection;
         }
-
         MoveTowards(targetPos, patrolSpeed);
     }
-
     void MoveTowards(Vector2 targetPos, float speed)
     {
         Vector2 currentPos = transform.position;
         Vector2 dir = (targetPos - currentPos).normalized;
-
         rb.velocity = new Vector2(dir.x * speed, rb.velocity.y);
-
         RotateToDirection(dir.x);
         if (anim) anim.SetFloat("Speed", Mathf.Abs(rb.velocity.x));
     }
-
     void RotateToDirection(float dirX)
     {
         if (dirX > 0.01f && !facingRight)
@@ -286,24 +346,48 @@ public class EnemyPathFollower : MonoBehaviour
         }
     }
 
+
+    // ... (Giữ nguyên TakeDamage, Die, OnDrawGizmos) ...
+    public override void TakeDamage(float damage)
+    {
+        if (isDead) return;
+        base.TakeDamage(damage);
+        if (anim) anim.SetTrigger("Hit");
+        if (isAttacking)
+        {
+            StopAllCoroutines();
+            isAttacking = false;
+            attackCoroutine = null;
+            if (attackCollider != null) attackCollider.enabled = false;
+        }
+        if (isDead)
+            Die();
+    }
+    protected override void Die()
+    {
+        base.Die();
+        if (anim) anim.SetTrigger("Dead");
+        StopAllCoroutines();
+        Destroy(gameObject, 2.5f);
+    }
     private void OnDrawGizmos()
     {
         Gizmos.color = new Color(1f, 0f, 0f, 0.25f);
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
-
+        if (attackCollider != null)
+        {
+            Gizmos.color = attackCollider.enabled ? new Color(1, 0, 0, 0.5f) : new Color(0, 1, 0, 0.2f);
+            Gizmos.DrawWireCube(attackCollider.bounds.center, attackCollider.bounds.size);
+        }
         if (currentLimitWaypoint != null)
         {
             Vector3 waypointPos3D = currentLimitWaypoint.Position;
-
             Gizmos.color = new Color(1f, 0.5f, 0f, 0.5f);
-
             Vector3 limitLeft = waypointPos3D + Vector3.left * maxDistanceFromWaypointX;
             Vector3 limitRight = waypointPos3D + Vector3.right * maxDistanceFromWaypointX;
-
             Gizmos.DrawLine(limitLeft + Vector3.up * 10f, limitLeft + Vector3.down * 10f);
             Gizmos.DrawLine(limitRight + Vector3.up * 10f, limitRight + Vector3.down * 10f);
         }
-
         if (!isChasing && !isWaiting && !isGuardBound)
         {
             Gizmos.color = Color.cyan;
@@ -313,13 +397,11 @@ public class EnemyPathFollower : MonoBehaviour
             Gizmos.DrawWireSphere(pointA, 0.2f);
             Gizmos.DrawWireSphere(pointB, 0.2f);
         }
-
         if (isChasing && currentLimitWaypoint != null)
         {
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(currentLimitWaypoint.Position, 0.5f);
             Gizmos.DrawLine(transform.position, currentLimitWaypoint.Position);
-
             if (fallbackPatrolPoint != null && currentLimitWaypoint != fallbackPatrolPoint)
             {
                 Gizmos.color = Color.green;

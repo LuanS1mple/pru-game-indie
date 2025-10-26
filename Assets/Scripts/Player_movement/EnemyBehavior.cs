@@ -3,22 +3,26 @@ using Pathfinding;
 using System.Collections;
 
 [RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(CircleCollider2D))]
 public class EnemyBehavior : BaseStats
 {
     private AIPath aiPath;
     private Animator anim;
     private Transform target;
     private Rigidbody2D rb;
+    private CircleCollider2D detectTrigger;
 
     [Header("Detection Settings")]
     [SerializeField] private float detectRange = 6f;
     [SerializeField] private float attackRange = 1.5f;
     [SerializeField] private float chaseLimitRange = 10f;
+    [SerializeField] private LayerMask playerLayer;
 
     private Vector2 spawnPosition;
     private bool isAttacking = false;
+    private bool playerInTrigger = false;
+    private bool isPausedChase = false;
 
-    // Chỉ dùng cho logic code, không tương tác trực tiếp với Animator
     private enum EnemyState { Idle, Move, Attack, Dead }
     private EnemyState currentState = EnemyState.Idle;
 
@@ -28,64 +32,55 @@ public class EnemyBehavior : BaseStats
         aiPath = GetComponent<AIPath>();
         anim = GetComponentInChildren<Animator>(true);
         rb = GetComponent<Rigidbody2D>();
-        spawnPosition = transform.position;
-    }
+        detectTrigger = GetComponent<CircleCollider2D>();
 
-    private void Start()
-    {
-        target = GameObject.FindGameObjectWithTag("Player")?.transform;
+        detectTrigger.isTrigger = true;
+        detectTrigger.radius = detectRange;
+        spawnPosition = transform.position;
     }
 
     private void Update()
     {
-        // 🛑 Ngừng xử lý nếu chết, không có Target, hoặc đang trong chuỗi tấn công
-        if (isDead || target == null || aiPath == null)
+        if (isDead || aiPath == null || isPausedChase)
         {
             if (isDead) aiPath.canMove = false;
             return;
         }
 
-        // Nếu đang tấn công, chỉ xoay nhân vật và KHÔNG thay đổi vị trí/hướng đi
-        if (isAttacking)
+        if (target == null)
         {
             aiPath.canMove = false;
-            RotateToDirection(target.position.x - transform.position.x);
             return;
         }
 
         float distanceToPlayer = Vector2.Distance(transform.position, target.position);
         float distanceToSpawn = Vector2.Distance(transform.position, spawnPosition);
 
-        // 1. Kiểm tra Giới hạn phạm vi đuổi (Backtrack)
+        // Giới hạn phạm vi đuổi
         if (distanceToSpawn > chaseLimitRange)
         {
             aiPath.destination = spawnPosition;
             aiPath.canMove = true;
             if (distanceToSpawn < 0.1f)
-            {
                 aiPath.canMove = false;
-                // Chuyển sang Idle thông qua LateUpdate
-            }
             return;
         }
 
-        // 2. Kiểm tra Tấn công (Ưu tiên cao nhất)
-        if (distanceToPlayer <= attackRange)
+        // Tấn công khi player vào range
+        if (playerInTrigger && distanceToPlayer <= attackRange)
         {
+            rb.velocity = Vector2.zero;
             aiPath.canMove = false;
             ChangeState(EnemyState.Attack);
         }
-        // 3. Kiểm tra Đuổi
         else if (distanceToPlayer <= detectRange)
         {
             aiPath.destination = target.position;
             aiPath.canMove = true;
         }
-        // 4. Kiểm tra Idle
         else
         {
             aiPath.canMove = false;
-            // Chuyển sang Idle thông qua LateUpdate
         }
     }
 
@@ -93,37 +88,22 @@ public class EnemyBehavior : BaseStats
     {
         if (isDead || anim == null || aiPath == null) return;
 
-        // Dùng vận tốc mong muốn của AIPath
         float speed = aiPath.desiredVelocity.magnitude;
 
-        // 1. Xoay nhân vật (nếu không đang tấn công, xoay theo hướng di chuyển)
         if (!isAttacking && aiPath.desiredVelocity.x != 0)
-        {
             RotateToDirection(aiPath.desiredVelocity.x);
-        }
 
-        // 2. 🔑 Cập nhật Float Speed cho Animator (Điều khiển Idle <-> Move)
         anim.SetFloat("Speed", speed);
 
-        // Cập nhật trạng thái code (dành cho logic, không phải Animator)
         if (speed > 0.05f)
-        {
             currentState = EnemyState.Move;
-        }
-        else
-        {
-            if (currentState != EnemyState.Attack && currentState != EnemyState.Dead)
-                currentState = EnemyState.Idle;
-        }
+        else if (currentState != EnemyState.Attack && currentState != EnemyState.Dead)
+            currentState = EnemyState.Idle;
     }
-
 
     private void ChangeState(EnemyState newState)
     {
-        // Ngăn chặn trạng thái Move/Idle ghi đè khi đang Attack
         if (isAttacking && newState != EnemyState.Attack) return;
-
-        // Tránh chạy lại Coroutine khi đã ở trạng thái Attack
         if (currentState == newState && newState == EnemyState.Attack) return;
 
         currentState = newState;
@@ -135,10 +115,8 @@ public class EnemyBehavior : BaseStats
                 break;
 
             case EnemyState.Dead:
-                anim.SetTrigger("Dead"); // Sử dụng Trigger
+                anim.SetTrigger("Dead");
                 break;
-
-                // Idle và Move được điều khiển bởi anim.SetFloat("Speed") trong LateUpdate
         }
     }
 
@@ -146,55 +124,45 @@ public class EnemyBehavior : BaseStats
     {
         isAttacking = true;
 
-        // Quay mặt về Target ngay trước khi tấn công
+        // Dừng hoàn toàn
+        rb.velocity = Vector2.zero;
+        aiPath.canMove = false;
+
+        // Về Idle animation trước khi tấn công
+        anim.Play("Idle");
+        yield return new WaitForSeconds(0.2f); // chuẩn bị trước khi chém
+
+        // Quay về player
         if (target != null)
-        {
             RotateToDirection(target.position.x - transform.position.x);
-        }
 
-        // 🔑 Kích hoạt animation Attack bằng Trigger
+        // Trigger attack animation
         anim.SetTrigger("Attack");
+        yield return new WaitForSeconds(0.3f); // delay trước khi gây sát thương
 
-        // Chờ thời gian để khớp với khung gây sát thương (0.5s)
-        yield return new WaitForSeconds(0.5f);
-
-        // Gây sát thương
         if (target != null && Vector2.Distance(transform.position, target.position) <= attackRange + 0.2f)
         {
             BaseStats playerStats = target.GetComponent<BaseStats>();
             if (playerStats != null)
-                // Giả định 'attack' là thuộc tính sát thương (damage value) trong BaseStats
                 playerStats.TakeDamage(attack);
         }
 
-        // Chờ thời gian cooldown còn lại (attackCooldown - 0.5s đã chờ)
         float remainingCooldown = attackCooldown - 0.5f;
         if (remainingCooldown > 0)
-        {
             yield return new WaitForSeconds(remainingCooldown);
-        }
 
         isAttacking = false;
         if (!isDead)
-        {
-            // Trạng thái sẽ được LateUpdate đưa về Idle hoặc Move (nếu Enemy bắt đầu di chuyển)
             currentState = EnemyState.Idle;
-        }
     }
 
-    // Hàm xoay nhân vật (dùng transform.localScale)
     private void RotateToDirection(float directionX)
     {
         if (Mathf.Abs(directionX) > 0.01f)
         {
-            if (directionX > 0 && transform.localScale.x < 0)
-            {
-                transform.localScale = new Vector3(Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
-            }
-            else if (directionX < 0 && transform.localScale.x > 0)
-            {
-                transform.localScale = new Vector3(-Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
-            }
+            transform.localScale = new Vector3(Mathf.Sign(directionX) * Mathf.Abs(transform.localScale.x),
+                                               transform.localScale.y,
+                                               transform.localScale.z);
         }
     }
 
@@ -203,23 +171,19 @@ public class EnemyBehavior : BaseStats
         if (isDead) return;
 
         base.TakeDamage(damage);
-        anim.SetTrigger("Hit"); // 🔑 Kích hoạt animation Hit bằng Trigger
+        anim.SetTrigger("Hit");
 
-        // Hủy tấn công nếu đang diễn ra
         if (isAttacking)
         {
             StopAllCoroutines();
             isAttacking = false;
         }
 
-        // Cho phép di chuyển lại nếu chưa chết
         if (!isDead)
             aiPath.canMove = true;
 
         if (isDead)
-        {
             Die();
-        }
     }
 
     protected override void Die()
@@ -227,27 +191,60 @@ public class EnemyBehavior : BaseStats
         base.Die();
         aiPath.canMove = false;
         ChangeState(EnemyState.Dead);
-
         StopAllCoroutines();
-
-        GameObject root = transform.root.gameObject;
-        Destroy(root, 2.5f);
+        Destroy(transform.root.gameObject, 2.5f);
     }
 
-    // --- HIỂN THỊ TẦM ĐÁNH VÀ PHÁT HIỆN BẰNG GIZMOS ---
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (((1 << other.gameObject.layer) & playerLayer) != 0)
+        {
+            playerInTrigger = true;
+            target = other.transform;
+            Debug.Log($"{name}: Player entered detection zone.");
+        }
+    }
+
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (((1 << other.gameObject.layer) & playerLayer) != 0)
+        {
+            playerInTrigger = false;
+            target = null;
+            Debug.Log($"{name}: Player exited detection zone.");
+        }
+    }
+
+    // ------------------ PAUSE CHASE ------------------
+    public void PauseChase(float duration)
+    {
+        if (!isPausedChase)
+            StartCoroutine(PauseChaseCoroutine(duration));
+    }
+
+    private IEnumerator PauseChaseCoroutine(float duration)
+    {
+        isPausedChase = true;
+        aiPath.canMove = false;
+
+        yield return new WaitForSeconds(duration);
+
+        isPausedChase = false;
+        if (target != null)
+            aiPath.canMove = true;
+    }
+
+    // ------------------ Gizmos ------------------
     private void OnDrawGizmos()
     {
         Vector3 center = transform.position;
 
-        // 1. Bán kính Phát hiện (Detection Range)
         Gizmos.color = new Color(1f, 0.5f, 0f, 0.25f);
         Gizmos.DrawWireSphere(center, detectRange);
 
-        // 2. Bán kính Tấn công (Attack Range)
         Gizmos.color = new Color(1f, 0f, 0f, 0.75f);
         Gizmos.DrawWireSphere(center, attackRange);
 
-        // 3. Giới hạn tầm đuổi (Chase Limit Range)
         if (spawnPosition != Vector2.zero)
         {
             Gizmos.color = new Color(0f, 0.5f, 1f, 0.1f);
