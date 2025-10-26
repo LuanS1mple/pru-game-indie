@@ -37729,6 +37729,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 5301430811643917104, guid: 1257f55df10d72c4289ea0d90dc6d82d, type: 3}
+      propertyPath: type
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5301430811643917107, guid: 1257f55df10d72c4289ea0d90dc6d82d, type: 3}
       propertyPath: m_Name
       value: MaxHealUpItem
