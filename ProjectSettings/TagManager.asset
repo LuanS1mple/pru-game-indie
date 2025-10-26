@@ -11,6 +11,7 @@ TagManager:
   - Chapter6-Key
   - Item
   - Hint
+  - Map1_key
   layers:
   - Default
   - TransparentFX
