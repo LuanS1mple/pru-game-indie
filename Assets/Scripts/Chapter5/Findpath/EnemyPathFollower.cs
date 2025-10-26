@@ -6,17 +6,23 @@ using System.Linq;
 [RequireComponent(typeof(Rigidbody2D))]
 public class EnemyPathFollower : BaseStats
 {
-    // ... (Giữ nguyên các biến) ...
+    // ... (Giữ nguyên các biến References, Animator, Rigidbody) ...
     [Header("References")]
     public WaypointGraph graph;
-    public Transform target;
+    public Transform target; // Vẫn dùng target gán từ ngoài
     private Rigidbody2D rb;
     private Animator anim;
+
     [Header("Movement Settings")]
     public float chaseSpeed = 3.5f;
     public float patrolSpeed = 1.2f;
-    public float detectionRadius = 6f;
+    // ❌ XÓA: public float detectionRadius = 6f; 
+    // ⭐ THAY BẰNG: Kích thước vùng phát hiện hình chữ nhật
+    public Vector2 detectionBoxSize = new Vector2(12f, 4f); // (Width, Height) - Ví dụ: Rộng 12, Cao 4
+
     public float waypointTolerance = 0.5f;
+
+    // ... (Giữ nguyên các biến Attack, Waypath Limit, Endpoint Wait, Patrol) ...
     [Header("Attack Settings")]
     public float attackRange = 1.5f;
     public Collider2D attackCollider;
@@ -28,7 +34,7 @@ public class EnemyPathFollower : BaseStats
     [Header("Patrol Settings")]
     public float patrolRange = 2f;
     private bool isChasing = false;
-    private bool facingRight = true;
+    private bool facingRight = true; // Sẽ dùng để xác định hướng của detection box
     private bool isWaiting = false;
     private Coroutine waitCoroutine;
     private bool isGuardBound = false;
@@ -72,7 +78,6 @@ public class EnemyPathFollower : BaseStats
         return nearest;
     }
 
-
     // ... (Giữ nguyên StopWaitAndBeginChase, StopWaitAndBeginPatrol) ...
     void StopWaitAndBeginChase()
     {
@@ -105,8 +110,7 @@ public class EnemyPathFollower : BaseStats
         }
     }
 
-
-    // ... (Giữ nguyên Update, StartAttack, AttackRoutine) ...
+    // ⭐ SỬA HÀM UPDATE ⭐
     private void Update()
     {
         if (isDead || isAttacking)
@@ -118,23 +122,34 @@ public class EnemyPathFollower : BaseStats
                 RotateToDirection(target.position.x - transform.position.x);
             return;
         }
-        if (target == null || graph == null)
+
+        if (target == null || graph == null) // Nếu không có target thì tuần tra
         {
             if (isGuardBound) StopWaitAndBeginPatrol();
             rb.velocity = Vector2.zero;
             if (anim) anim.SetFloat("Speed", 0);
+            Patrol(); // Thêm dòng này để bắt đầu tuần tra nếu target là null
             return;
         }
-        float distanceToPlayer = Vector2.Distance(transform.position, target.position);
-        if (isChasing && distanceToPlayer <= attackRange)
+
+        // --- Kiểm tra Player trong vùng chữ nhật ---
+        bool playerInDetectionBox = IsPlayerInDetectionBox();
+
+        // --- Logic Chase/Patrol dựa trên vùng chữ nhật ---
+        if (playerInDetectionBox)
         {
-            rb.velocity = Vector2.zero;
-            if (anim) anim.SetFloat("Speed", 0);
-            StartAttack();
-            return;
-        }
-        if (distanceToPlayer <= detectionRadius)
-        {
+            float distanceToPlayer = Vector2.Distance(transform.position, target.position); // Vẫn cần distance để check Attack Range
+
+            // LOGIC TẤN CÔNG (nếu đủ gần)
+            if (isChasing && distanceToPlayer <= attackRange)
+            {
+                rb.velocity = Vector2.zero;
+                if (anim) anim.SetFloat("Speed", 0);
+                StartAttack();
+                return;
+            }
+
+            // LOGIC ĐUỔI THEO (nếu trong vùng detected nhưng ngoài tầm đánh)
             if (!isChasing)
             {
                 StopWaitAndBeginChase();
@@ -142,8 +157,9 @@ public class EnemyPathFollower : BaseStats
             }
             ChaseTargetWithWaypointLimit();
         }
-        else
+        else // Player nằm ngoài vùng chữ nhật
         {
+            // Quay về tuần tra nếu đang đuổi hoặc canh gác
             if (isChasing || isWaiting || isGuardBound)
             {
                 StopWaitAndBeginPatrol();
@@ -151,10 +167,38 @@ public class EnemyPathFollower : BaseStats
             Patrol();
         }
     }
+
+    // ⭐ HÀM MỚI: Kiểm tra Player có trong hình chữ nhật không ⭐
+    private bool IsPlayerInDetectionBox()
+    {
+        if (target == null) return false;
+
+        Vector2 enemyPos = transform.position;
+        Vector2 playerPos = target.position;
+        Vector2 relativePos = playerPos - enemyPos;
+
+        float halfWidth = detectionBoxSize.x / 2f;
+        float halfHeight = detectionBoxSize.y / 2f;
+
+        // Tính toán biên của hình chữ nhật (dựa vào hướng của Enemy)
+        // Đơn giản hóa: Coi hình chữ nhật luôn đối xứng quanh Enemy
+        float minX = enemyPos.x - halfWidth;
+        float maxX = enemyPos.x + halfWidth;
+        float minY = enemyPos.y - halfHeight;
+        float maxY = enemyPos.y + halfHeight;
+
+        // Kiểm tra xem vị trí Player có nằm trong các biên này không
+        bool withinX = playerPos.x >= minX && playerPos.x <= maxX;
+        bool withinY = playerPos.y >= minY && playerPos.y <= maxY;
+
+        return withinX && withinY;
+    }
+
+
+    // ... (Giữ nguyên StartAttack, AttackRoutine, Logic Tấn công Trigger) ...
     void StartAttack()
     {
         if (isAttacking) return;
-
         attackCoroutine = StartCoroutine(AttackRoutine());
     }
     private IEnumerator AttackRoutine()
@@ -169,12 +213,6 @@ public class EnemyPathFollower : BaseStats
         isAttacking = false;
         attackCoroutine = null;
     }
-
-
-    // ⭐⭐⭐ LOGIC TẤN CÔNG (ĐÃ ĐỔI TÊN HÀM) ⭐⭐⭐
-
-    // --- Animation Event: Bắt đầu khung sát thương ---
-    // SỬ DỤNG HÀM NÀY:
     public void HandleAnimation_EnableAttackCollider()
     {
         if (attackCollider == null) return;
@@ -183,7 +221,6 @@ public class EnemyPathFollower : BaseStats
         hitPlayers.Clear();
         StartCoroutine(RefreshCollider());
     }
-
     IEnumerator RefreshCollider()
     {
         attackCollider.enabled = false;
@@ -194,9 +231,6 @@ public class EnemyPathFollower : BaseStats
         yield return null;
         attackCollider.transform.localPosition = originalPos;
     }
-
-    // --- Animation Event: Kết thúc khung sát thương ---
-    // SỬ DỤNG HÀM NÀY:
     public void HandleAnimation_DisableAttackCollider()
     {
         if (attackCollider == null) return;
@@ -204,13 +238,6 @@ public class EnemyPathFollower : BaseStats
         canDealDamage = false;
         attackCollider.enabled = false;
     }
-
-    // --- HÀM CŨ (Đã đổi tên) ---
-    // public void AnimationEvent_EnableAttackCollider() { ... }
-    // public void AnimationEvent_DisableAttackCollider() { ... }
-
-
-    // ... (Giữ nguyên TryDealDamage, OnTriggerEnter2D, OnTriggerStay2D) ...
     private void TryDealDamage(Collider2D collision)
     {
         if (!canDealDamage) return;
@@ -232,29 +259,11 @@ public class EnemyPathFollower : BaseStats
             }
         }
     }
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        TryDealDamage(collision);
-    }
-    private void OnTriggerStay2D(Collider2D collision)
-    {
-        TryDealDamage(collision);
-    }
+    private void OnTriggerEnter2D(Collider2D collision) { TryDealDamage(collision); }
+    private void OnTriggerStay2D(Collider2D collision) { TryDealDamage(collision); }
+    public void HandleAnimation_TriggerDie() { Die(); }
+    public void HandleAnimation_TriggerTakeDamage(float damage) { TakeDamage(damage); }
 
-
-    // ⭐⭐⭐ LOGIC HÀM GỐC (ĐỂ TRÁNH LỖI) ⭐⭐⭐
-
-    // HÀM MỚI: Dùng hàm này trong Animation "Dead" (nếu bạn cần gọi Die() từ animation)
-    public void HandleAnimation_TriggerDie()
-    {
-        Die(); // Gọi hàm Die() đã có
-    }
-
-    // HÀM MỚI: Dùng hàm này nếu bạn muốn animation tự gây sát thương
-    public void HandleAnimation_TriggerTakeDamage(float damage)
-    {
-        TakeDamage(damage); // Gọi hàm TakeDamage() đã có
-    }
 
     // ... (Giữ nguyên ChaseTargetWithWaypointLimit, Patrol, MoveTowards, RotateToDirection) ...
     void ChaseTargetWithWaypointLimit()
@@ -269,14 +278,8 @@ public class EnemyPathFollower : BaseStats
         }
         Waypoint targetNode = graph.GetClosestWaypoint(target.position);
         bool isTargetReachable = (targetNode != null && graph.FindPath(currentLimitWaypoint, targetNode) != null);
-        if (isTargetReachable)
-        {
-            isGuardBound = false;
-        }
-        else
-        {
-            isGuardBound = true;
-        }
+        if (isTargetReachable) { isGuardBound = false; } else { isGuardBound = true; }
+
         if (isGuardBound)
         {
             float distToLimit = Vector2.Distance(currentPos, currentLimitWaypoint.Position);
@@ -346,8 +349,7 @@ public class EnemyPathFollower : BaseStats
         }
     }
 
-
-    // ... (Giữ nguyên TakeDamage, Die, OnDrawGizmos) ...
+    // ... (Giữ nguyên TakeDamage, Die) ...
     public override void TakeDamage(float damage)
     {
         if (isDead) return;
@@ -370,10 +372,17 @@ public class EnemyPathFollower : BaseStats
         StopAllCoroutines();
         Destroy(gameObject, 2.5f);
     }
+
+    // ⭐ SỬA HÀM ONDRAWGIZMOS ⭐
     private void OnDrawGizmos()
     {
-        Gizmos.color = new Color(1f, 0f, 0f, 0.25f);
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
+        // Vẽ vùng phát hiện hình chữ nhật
+        Gizmos.color = (target != null && IsPlayerInDetectionBox()) ? new Color(1f, 0f, 0f, 0.25f) : new Color(0f, 1f, 0f, 0.25f);
+        Vector3 boxCenter = transform.position; // Đặt tâm ở vị trí Enemy
+        Vector3 boxSize = new Vector3(detectionBoxSize.x, detectionBoxSize.y, 0.1f); // Kích thước từ biến
+        Gizmos.DrawWireCube(boxCenter, boxSize); // Vẽ hình hộp
+
+        // Giữ nguyên Gizmos cho Attack Collider, Waypoint Limit, Patrol Range
         if (attackCollider != null)
         {
             Gizmos.color = attackCollider.enabled ? new Color(1, 0, 0, 0.5f) : new Color(0, 1, 0, 0.2f);
@@ -401,7 +410,8 @@ public class EnemyPathFollower : BaseStats
         {
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(currentLimitWaypoint.Position, 0.5f);
-            Gizmos.DrawLine(transform.position, currentLimitWaypoint.Position);
+            // Có thể bỏ dòng kẻ tới target nếu không cần thiết
+            // Gizmos.DrawLine(transform.position, target.position); 
             if (fallbackPatrolPoint != null && currentLimitWaypoint != fallbackPatrolPoint)
             {
                 Gizmos.color = Color.green;
