@@ -69,6 +69,37 @@ PolygonCollider2D:
       - {x: 1.5533968, y: 0.42241406}
       - {x: 1.6165109, y: 0.7580503}
       - {x: 1.6136694, y: 0.99023134}
+--- !u!1 &4426536665806780227
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2800772054732820974}
+  m_Layer: 0
+  m_Name: WindCast
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2800772054732820974
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4426536665806780227}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.11, y: 0.11, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5563793712612347254}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5563793712282547703
 GameObject:
   m_ObjectHideFlags: 0
@@ -259,6 +290,7 @@ Transform:
   - {fileID: 5563793712282547696}
   - {fileID: 5563793712352029295}
   - {fileID: 1027368553699539980}
+  - {fileID: 2800772054732820974}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -376,6 +408,9 @@ MonoBehaviour:
   rollSpeed: 0
   rollDuration: 0
   rollCooldown: 0
+  windBlastPrefab: {fileID: 0}
+  windSpawnPoint: {fileID: 0}
+  windBlastCooldown: 10
 --- !u!114 &2529220991806139691
 MonoBehaviour:
   m_ObjectHideFlags: 0
