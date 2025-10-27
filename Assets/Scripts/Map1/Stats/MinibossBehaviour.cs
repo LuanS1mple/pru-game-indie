@@ -29,6 +29,8 @@ public class MinibossBehaviour : MonoBehaviour
     private int normalAttackCount = 0;
 
     private bool facingRight = true;
+    public int GetCurrentHealth() => currentHealth;
+    public int GetMaxHealth() => maxHealth;
 
     void Start()
     {
@@ -182,8 +184,12 @@ public class MinibossBehaviour : MonoBehaviour
         if (col != null) col.enabled = false;
 
         Debug.Log("💀 Miniboss đã chết!");
-        Destroy(gameObject, 1f);
+
+        // ✅ Hủy luôn cha nếu có, hoặc chính nó nếu không có cha
+        GameObject toDestroy = transform.parent != null ? transform.parent.gameObject : gameObject;
+        Destroy(toDestroy, 1f);
     }
+
 
     private void OnDrawGizmosSelected()
     {

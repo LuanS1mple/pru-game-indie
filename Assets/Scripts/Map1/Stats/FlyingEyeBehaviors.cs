@@ -12,7 +12,7 @@ public class FlyingEyeBehaviors : MonoBehaviour
     private BaseStats playerStats;
 
     [Header("Stats")]
-    [SerializeField] private int maxHealth = 40;
+    [SerializeField] public int maxHealth = 40;
     private int currentHealth;
     private bool isDead = false;
 
@@ -22,12 +22,14 @@ public class FlyingEyeBehaviors : MonoBehaviour
 
     [Header("Attack Settings")]
     [SerializeField] private float AttackCooldown = 2.5f;
-    [SerializeField] private int damage = 10;
+    [SerializeField] private int damage = 3;
     private float lastAttackTime;
     private bool isAttackingNow = false;
 
     private bool facingRight = true;
+
     // implement interface
+    public int GetCurrentHealth() => currentHealth;
 
     void Start()
     {
@@ -35,10 +37,7 @@ public class FlyingEyeBehaviors : MonoBehaviour
         aiPath = aiPath ?? GetComponent<AIPath>();
 
         if (aiPath != null)
-        {
             aiPath.canMove = true;
-            // ✅ Tắt tự xoay của AIPath
-        }
 
         if (Target == null)
             Target = GameObject.FindGameObjectWithTag("Player");
@@ -89,8 +88,7 @@ public class FlyingEyeBehaviors : MonoBehaviour
             aiPath.canMove = false;
         }
 
-        // --- ✅ Flip hướng dựa trên vận tốc thật ---
-        // --- ✅ Flip hướng dựa trên vị trí Player (giống Miniboss) ---
+        // --- Flip hướng dựa trên vị trí Player ---
         if (Target != null)
         {
             float dirToTarget = Target.transform.position.x - transform.position.x;
@@ -99,7 +97,6 @@ public class FlyingEyeBehaviors : MonoBehaviour
             else if (dirToTarget < 0 && facingRight)
                 Flip();
         }
-
     }
 
     private void Flip()
@@ -112,11 +109,15 @@ public class FlyingEyeBehaviors : MonoBehaviour
 
     IEnumerator AttackRoutine()
     {
+        if (isDead) yield break; // ✅ Enemy chết thì không tấn công
         isAttackingNow = true;
-        if (animator != null) animator.SetTrigger("attack");
+
+        if (animator != null)
+            animator.SetTrigger("attack");
 
         yield return new WaitForSeconds(0.4f);
 
+        // ✅ Kiểm tra lại trước khi gây damage
         if (!isDead && Target != null && playerStats != null)
         {
             float distance = Vector2.Distance(transform.position, Target.transform.position);
@@ -127,8 +128,17 @@ public class FlyingEyeBehaviors : MonoBehaviour
             }
         }
 
-        yield return new WaitForSeconds(AttackCooldown);
-        isAttackingNow = false;
+        // ✅ Chờ cooldown nhưng vẫn kiểm tra sống/chết
+        float timer = 0f;
+        while (timer < AttackCooldown)
+        {
+            if (isDead) yield break;
+            timer += Time.deltaTime;
+            yield return null;
+        }
+
+        if (!isDead)
+            isAttackingNow = false;
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -154,7 +164,8 @@ public class FlyingEyeBehaviors : MonoBehaviour
         StartCoroutine(CoTakeHit());
         Debug.Log($"FlyingEye bị đánh! Mất {damage} HP. Còn {currentHealth}/{maxHealth}");
 
-        if (currentHealth <= 0) Die();
+        if (currentHealth <= 0)
+            Die();
     }
 
     private IEnumerator CoTakeHit()
@@ -170,11 +181,29 @@ public class FlyingEyeBehaviors : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
+        // ✅ Dừng toàn bộ coroutine và logic tấn công
+        StopAllCoroutines();
         aiPath.canMove = false;
-        if (animator != null) animator.SetTrigger("die");
 
-        Collider2D col = GetComponent<Collider2D>();
-        if (col != null) col.enabled = false;
+        // ✅ Tắt collider của toàn bộ object và con
+        foreach (var col in GetComponentsInChildren<Collider2D>())
+            col.enabled = false;
+
+        // ✅ Tắt rigidbody vật lý nếu có
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.velocity = Vector2.zero;
+            rb.isKinematic = true;
+        }
+
+        // ✅ Ẩn thanh máu nếu có (EnemyHealthBarUI nằm con)
+        var healthBar = GetComponentInChildren<EnemyHealthBarUI>();
+        if (healthBar != null)
+            healthBar.gameObject.SetActive(false);
+
+        if (animator != null)
+            animator.SetTrigger("die");
 
         StartCoroutine(DestroyAfterDeath());
     }
@@ -195,8 +224,19 @@ public class FlyingEyeBehaviors : MonoBehaviour
         }
 
         yield return new WaitForSeconds(deathAnimLength);
-        Destroy(gameObject);
+
+        // 🔥 Thay dòng này:
+        // Destroy(gameObject);
+
+        // ✅ Thành một trong các dòng sau, tùy cấu trúc prefab:
+
+        // 👉 Nếu FlyingEyeBehaviors nằm trong child của một enemy root object:
+        Destroy(transform.root.gameObject);
+
+        // Hoặc nếu chỉ muốn hủy cha trực tiếp:
+        // Destroy(transform.parent.gameObject);
     }
+
 
     private void OnDrawGizmosSelected()
     {
