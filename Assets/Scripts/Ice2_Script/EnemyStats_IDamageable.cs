@@ -82,10 +82,14 @@
 //}
 using UnityEngine;
 using System.Collections;
+using UnityEngine.Events;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class EnemyStats_IDamageable : MonoBehaviour
 {
+    [Header("Events")]
+    public UnityEvent OnDeath;
+
     [Header("HP")]
     public int maxHealth = 60;
     public int currentHealth = 60;
@@ -158,6 +162,8 @@ public class EnemyStats_IDamageable : MonoBehaviour
     {
         if (dead) yield break;
         dead = true;
+
+        OnDeath?.Invoke();
 
         // Tắt AI & dừng mọi chuyển động
         if (enemyAI) enemyAI.enabled = false;

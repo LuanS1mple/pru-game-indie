@@ -1,9 +1,13 @@
 ﻿using System.Collections;
 using UnityEngine;
 using Pathfinding;
+using UnityEngine.Events;
 
 public class MinibossBehaviour : MonoBehaviour
 {
+    [Header("Events")]
+    public UnityEvent OnBossDied;
+
     [Header("References")]
     [SerializeField] private AIPath aiPath;
     [Tooltip("Nếu để trống sẽ tự Find bằng tag 'Player'")]
@@ -178,6 +182,8 @@ public class MinibossBehaviour : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
+        OnBossDied?.Invoke();
+
         aiPath.canMove = false;
 
         Collider2D col = GetComponent<Collider2D>();
@@ -187,7 +193,7 @@ public class MinibossBehaviour : MonoBehaviour
 
         // ✅ Hủy luôn cha nếu có, hoặc chính nó nếu không có cha
         GameObject toDestroy = transform.parent != null ? transform.parent.gameObject : gameObject;
-        Destroy(toDestroy, 1f);
+        Destroy(toDestroy, 2f);
     }
 
 

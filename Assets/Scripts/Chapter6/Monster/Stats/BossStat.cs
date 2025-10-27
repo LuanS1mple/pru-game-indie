@@ -1,9 +1,13 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System;
+using UnityEngine.Events;
 
 public class BossStat : MonoBehaviour
 {
+    [Header("Events")]
+    public UnityEvent OnBossDied;
+
     [Header("Stats")]
     public int maxHP = 100;
     private int currentHP;
@@ -48,6 +52,8 @@ public class BossStat : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
+
+        OnBossDied?.Invoke();
 
         // Ngắt toàn bộ hành động
         if (bossBehaviors != null)

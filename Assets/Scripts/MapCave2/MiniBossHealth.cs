@@ -1,9 +1,13 @@
 ﻿using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class MiniBossHealth : MonoBehaviour
 {
     private AudioManager audioManager;
+
+    [Header("Events")]
+    public UnityEvent OnMiniBossDied;
 
     [Header("HP Settings")]
     public int maxHP = 10;
@@ -84,6 +88,7 @@ public class MiniBossHealth : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
+        OnMiniBossDied?.Invoke();
         Debug.Log("[MiniBossHealth] ☠ Bắt đầu quy trình chết...");
 
         if (anim != null && anim.HasParameterOfType(deadTrigger, AnimatorControllerParameterType.Trigger))

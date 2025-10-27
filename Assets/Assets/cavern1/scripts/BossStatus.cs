@@ -1,8 +1,12 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.Events;
 
 public class BossStatus : MonoBehaviour
 {
+    [Header("Events")]
+    public UnityEvent OnBossDied;
+
     [Header("Thông số cơ bản")]
     public string bossName = "Boss";
     public float maxHealth = 500f;
@@ -76,6 +80,8 @@ public class BossStatus : MonoBehaviour
         isDead = true;
         isInvulnerable = true;
         currentHealth = 0;
+
+        OnBossDied?.Invoke();
 
         Debug.Log($"{bossName} đã chết!");
 
