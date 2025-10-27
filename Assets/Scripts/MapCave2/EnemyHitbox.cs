@@ -8,7 +8,10 @@ public class EnemyHitbox : MonoBehaviour
     public float knockbackToPlayer = 6f;
     public float stunToPlayer = 0.15f;
 
-    private bool hasHit;
+    [Header("Cooldown Settings")]
+    public float hitCooldown = 0.5f; // thời gian cho phép gây damage lại
+
+    private float lastHitTime;
     private Collider2D col;
 
     void Awake()
@@ -16,7 +19,6 @@ public class EnemyHitbox : MonoBehaviour
         col = GetComponent<Collider2D>();
         col.isTrigger = true;
 
-        // Debug kiểm tra Rigidbody cha
         Rigidbody2D rb = GetComponentInParent<Rigidbody2D>();
         if (rb == null)
             Debug.LogWarning($"⚠️ [Hitbox] Không tìm thấy Rigidbody2D trong cha của {name}. Va chạm có thể KHÔNG hoạt động!");
@@ -24,38 +26,60 @@ public class EnemyHitbox : MonoBehaviour
             Debug.Log($"✅ [Hitbox] Rigidbody2D cha: {rb.gameObject.name}, type = {rb.bodyType}");
     }
 
-    private void OnEnable() => hasHit = false;
-    private void OnDisable() => hasHit = false;
-
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // Chỉ xử lý nếu đối tượng có tag Player
         if (!other.CompareTag("Player")) return;
-        if (hasHit) return;
+        if (Time.time - lastHitTime < hitCooldown) return;
+        lastHitTime = Time.time;
 
-        Transform root = other.attachedRigidbody ? other.attachedRigidbody.transform : other.transform;
-        Debug.Log($"[Hitbox] 💥 Va chạm với Player: {root.name}");
+        Debug.Log($"🧩 [EnemyHitbox] {name} va chạm với {other.name} lúc {Time.time:F2}");
 
-        // Gây damage qua PlayerStats nếu có
-        PlayerStats ps = root.GetComponent<PlayerStats>();
+        // ✅ Lấy BaseStats và PlayerStats từ Player
+        BaseStats bs = other.GetComponentInParent<BaseStats>();
+        PlayerStats ps = other.GetComponentInParent<PlayerStats>();
+
+        if (bs == null)
+        {
+            Debug.LogWarning($"⚠️ [EnemyHitbox] Không tìm thấy BaseStats trên {other.name} hoặc cha của nó!");
+            return;
+        }
+
+        float beforeHP = bs.currentHP;
+        bool wasDeadBefore = bs.isDead;
+
+        Debug.Log($"[EnemyHitbox] 💢 Gây damage {damage} cho {bs.entityName} (trước: {beforeHP}/{bs.maxHP}, dead={wasDeadBefore})");
+
+        // --- Gây damage ---
+        bs.TakeDamage(damage);
+
+        float afterHP = bs.currentHP;
+        bool isDeadNow = bs.isDead;
+
+        Debug.Log($"[EnemyHitbox] 📊 Sau khi trừ damage: currentHP={afterHP}/{bs.maxHP}, isDead={isDeadNow}");
+
+        // --- HUD cập nhật ---
         if (ps != null)
         {
-            hasHit = true;
-            ps.TakeDamage(damage, (Vector2)transform.position, knockbackToPlayer, stunToPlayer);
-            Debug.Log($"💥 [Hitbox] Gây {damage} damage (PlayerStats)");
-            return;
+            if (!isDeadNow)
+            {
+                ps.TakeDamage(damage);
+                Debug.Log($"[EnemyHitbox] ❤️ HUD cập nhật: Player còn {ps.CurrentHealth}/{ps.MaxHealth}");
+            }
+            else
+            {
+                ps.TakeDamage(ps.CurrentHealth);
+                Debug.Log($"💀 [EnemyHitbox] Player đã chết → HUD về 0");
+            }
         }
 
-        // Hoặc BaseStats nếu có
-        BaseStats bs = root.GetComponent<BaseStats>();
-        if (bs != null)
+        // --- Xác nhận Player chết thực sự ---
+        if (isDeadNow && !wasDeadBefore)
         {
-            hasHit = true;
-            bs.TakeDamage(damage);
-            Debug.Log($"💥 [Hitbox] Gây {damage} damage (BaseStats)");
-            return;
+            Debug.Log($"☠️ [EnemyHitbox] Player {bs.entityName} CHẾT tại thời điểm {Time.time:F2}");
         }
-
-        Debug.LogWarning($"⚠️ [Hitbox] Player không có script nhận damage trên {root.name}");
+        else if (!isDeadNow)
+        {
+            Debug.Log($"🩸 [EnemyHitbox] Player {bs.entityName} vẫn sống sau đòn đánh này.");
+        }
     }
 }
