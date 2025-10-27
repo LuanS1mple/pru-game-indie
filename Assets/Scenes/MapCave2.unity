@@ -65129,6 +65129,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   aiPath: {fileID: 349602234}
+  flip: 1
 --- !u!1 &394361103
 GameObject:
   m_ObjectHideFlags: 0
@@ -65698,6 +65699,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   aiPath: {fileID: 707480501}
+  flip: 0
 --- !u!114 &707480507
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -65742,6 +65744,7 @@ GameObject:
   - component: {fileID: 729129310}
   - component: {fileID: 729129309}
   - component: {fileID: 729129308}
+  - component: {fileID: 729129311}
   m_Layer: 0
   m_Name: Trap
   m_TagString: Untagged
@@ -67033,6 +67036,22 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!114 &729129311
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 729129306}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c52beec62113fdb49af8ecc6feea7bc0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  damage: 10
+  knockbackToPlayer: 6
+  stunToPlayer: 0.15
+  hitCooldown: 0.5
 --- !u!4 &772283326 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6630025832547885368, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
@@ -67405,6 +67424,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1056915224}
   - component: {fileID: 1056915225}
+  - component: {fileID: 1056915226}
   m_Layer: 0
   m_Name: FireHitbox
   m_TagString: Untagged
@@ -67443,6 +67463,22 @@ CapsuleCollider2D:
   m_Offset: {x: -0.0112018585, y: -0.08215475}
   m_Size: {x: 0.28918076, y: 0.41839504}
   m_Direction: 0
+--- !u!114 &1056915226
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1056915223}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c52beec62113fdb49af8ecc6feea7bc0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  damage: 10
+  knockbackToPlayer: 6
+  stunToPlayer: 0.15
+  hitCooldown: 0.5
 --- !u!1 &1070724529
 GameObject:
   m_ObjectHideFlags: 0
@@ -87933,7 +87969,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1253285224}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 48.7, y: 54.35, z: -10}
+  m_LocalPosition: {x: 112, y: 32.65, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -88446,6 +88482,11 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!4 &1750364217 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2583116053117012205, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
+  m_PrefabInstance: {fileID: 1798479757}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1793348203
 GameObject:
   m_ObjectHideFlags: 0
@@ -90574,6 +90615,34 @@ PrefabInstance:
       propertyPath: m_TagString
       value: TestAttack
       objectReference: {fileID: 0}
+    - target: {fileID: 2583116053117012205, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2583116053117012205, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2583116053117012205, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1.14
+      objectReference: {fileID: 0}
+    - target: {fileID: 2583116053117012205, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.09
+      objectReference: {fileID: 0}
+    - target: {fileID: 2583116053117012205, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2583116053117012205, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2583116053117012205, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3615718348000674149, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
       propertyPath: playerStats
       value: 
@@ -90587,6 +90656,10 @@ PrefabInstance:
       value: player
       objectReference: {fileID: 0}
     - target: {fileID: 6630025832547885364, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6630025832547885364, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
       propertyPath: m_TagString
       value: Player
       objectReference: {fileID: 0}
@@ -90596,11 +90669,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6630025832547885368, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 48.7
+      value: 112
       objectReference: {fileID: 0}
     - target: {fileID: 6630025832547885368, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 53.1
+      value: 31.4
       objectReference: {fileID: 0}
     - target: {fileID: 6630025832547885368, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
       propertyPath: m_LocalPosition.z
@@ -90634,6 +90707,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6630025832547885373, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
+      propertyPath: windSpawnPoint
+      value: 
+      objectReference: {fileID: 1750364217}
+    - target: {fileID: 6630025832547885373, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
+      propertyPath: windBlastPrefab
+      value: 
+      objectReference: {fileID: 3829332156389433595, guid: 6f473b5ac58793c40ba81f96e3dfcc08, type: 3}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 88bfe076d78f21f4e8f49b44baea7c0c, type: 3}
 --- !u!1001 &1818034527
