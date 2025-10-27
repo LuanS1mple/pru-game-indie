@@ -26,7 +26,14 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
     private BaseStats playerStats;
 
     private bool canFlip = true;
+    [Header("Skill Settings")]
+    public GameObject windBlastPrefab;
+    public Transform windSpawnPoint;
+    [Tooltip("Thời gian hồi chiêu của kỹ năng Gió Bụi")]
+    public float windBlastCooldown = 10f; // Ví dụ: 3 giây
+    private float nextWindBlastTime = 0f; // Thời điểm kỹ năng sẵn sàng lần tới
 
+    
     private void Awake()
     {
         audioManager = GameObject.FindGameObjectWithTag("Audio")?.GetComponent<AudioManager>(); // Thêm ? để tránh lỗi nếu không tìm thấy
@@ -68,11 +75,87 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
         {
             HandleRoll();
         }
-
+        HandleSkillInput();
         HandleFalling();
     }
+    void HandleSkillInput()
+    {
+        // Ví dụ: Kỹ năng kích hoạt bằng phím 'F'
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            // ⭐ SỬ DỤNG StartCoroutine để gọi hàm mới
+            StartCoroutine(CastWindBlastCoroutine());
+        }
+    }
+    IEnumerator CastWindBlastCoroutine()
+    {
+        // 1. KIỂM TRA COOLDOWN VÀ TRẠNG THÁI (Giữ nguyên)
+        if (Time.time < nextWindBlastTime || isRolling || (playerStats != null && playerStats.isDead))
+        {
+            yield break; // Trả về false nếu không thể Cast
+        }
 
-    // --- Giữ nguyên các hàm di chuyển ---
+        if (windBlastPrefab == null || windSpawnPoint == null)
+        {
+            Debug.LogError("Thiếu Prefab Kỹ năng Gió hoặc Spawn Point!");
+            yield break; // Thoát Coroutine
+        }
+
+        // 2. CẬP NHẬT THỜI GIAN HỒI CHIÊU NGAY LẬP TỨC
+        nextWindBlastTime = Time.time + windBlastCooldown;
+
+        // 3. Kích hoạt Animation Cast của Player NGAY LẬP TỨC
+        if (animator)
+        {
+            animator.SetTrigger("wind");
+        }
+
+        // ⭐ 4. TẠM DỪNG SCRIPT TẠI ĐÂY TRONG 0.5 GIÂY ⭐
+        yield return new WaitForSeconds(0.25f);
+
+        // ----------- LOGIC SINH PREFAB SAU KHI DỪNG -----------
+
+        // 5. Xác định hướng quay (Scale X)
+        float scaleX = facingRight ? 1f : -1f;
+
+        // 6. Sinh ra Prefab tại vị trí đã thiết lập
+        GameObject skillInstance = Instantiate(
+            windBlastPrefab,
+            windSpawnPoint.position,
+            Quaternion.identity
+        );
+
+        // 7. Truy cập script WindBlast và khởi tạo
+        WindBlast blastScript = skillInstance.GetComponent<WindBlast>();
+        if (blastScript != null)
+        {
+            blastScript.Initialize(scaleX);
+        }
+    }
+
+    // ⭐ HÀM MỚI: Sẽ được gọi bởi Animation Event
+    // QUAN TRỌNG: Hàm phải là public để Animation Event truy cập được
+    public void SpawnWindBlastEffect()
+    {
+        // 1. Xác định hướng quay (Scale X)
+        float scaleX = facingRight ? 1f : -1f;
+
+        // 2. Sinh ra Prefab tại vị trí đã thiết lập
+        GameObject skillInstance = Instantiate(
+            windBlastPrefab,
+            windSpawnPoint.position,
+            Quaternion.identity
+        );
+
+        // 3. Truy cập script WindBlast và khởi tạo
+        WindBlast blastScript = skillInstance.GetComponent<WindBlast>();
+        if (blastScript != null)
+        {
+            blastScript.Initialize(scaleX);
+        }
+
+        // Tùy chọn: Thêm logic để Player thoát khỏi trạng thái "CastWind"
+    }
     void HandleMovement(float move)
     {
         rb.velocity = new Vector2(move * speed, rb.velocity.y);
