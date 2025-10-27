@@ -67,7 +67,7 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
         HandleMovement(move);
         HandleFacingDirection(move);
 
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.W))
         {
             HandleJump();
         }
@@ -81,7 +81,7 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
     void HandleSkillInput()
     {
         // Ví dụ: Kỹ năng kích hoạt bằng phím 'F'
-        if (Input.GetKeyDown(KeyCode.F))
+        if (Input.GetKeyDown(KeyCode.Space))
         {
             // ⭐ SỬ DỤNG StartCoroutine để gọi hàm mới
             StartCoroutine(CastWindBlastCoroutine());
