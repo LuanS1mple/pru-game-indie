@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using Pathfinding;
 using UnityEngine;
@@ -6,22 +6,26 @@ using UnityEngine;
 public class ChangeFace : MonoBehaviour
 {
     public AIPath aiPath;
-    // Start is called before the first frame update
-    void Start()
-    {
+    [Tooltip("Nếu sprite mặc định quay sang trái, bật tùy chọn này.")]
+    public bool flip = false;
 
-    }
-
-    // Update is called once per frame
     void Update()
     {
-        if (aiPath.desiredVelocity.x >= 0.01f)
+        if (aiPath == null) return;
+
+        float direction = aiPath.desiredVelocity.x;
+
+        if (direction >= 0.01f)
         {
-            transform.localScale = new Vector3(1f, 1f, 1f);
+            transform.localScale = flip
+                ? new Vector3(-1f, 1f, 1f)  // nếu quái mặc định quay trái
+                : new Vector3(1f, 1f, 1f);  // nếu quái mặc định quay phải
         }
-        else if (aiPath.desiredVelocity.x <= -0.01f)
+        else if (direction <= -0.01f)
         {
-            transform.localScale = new Vector3(-1f, 1f, 1f);
+            transform.localScale = flip
+                ? new Vector3(1f, 1f, 1f)
+                : new Vector3(-1f, 1f, 1f);
         }
     }
 }
