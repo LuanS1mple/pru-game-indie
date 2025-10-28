@@ -75,6 +75,33 @@ public class BaseStats : MonoBehaviour
         }
     }
 
+    // Đặt hàm này gần hoặc sau hàm TakeDamage(float damage) hiện tại
+    public virtual void TakeDamageTrap(float damage)
+    {
+        // 1. Kiểm tra trạng thái miễn nhiễm/chết trước
+        if (isInvulnerable || isDead) return;
+
+        // 2. Sát thương TRỰC TIẾP (Bỏ qua Defense)
+        float finalDamage = damage;
+
+        currentHP -= finalDamage;
+        Debug.Log($"{entityName} nhận {finalDamage} sát thương Bẫy! (Còn {currentHP})");
+
+        // 3. Gọi animation Hit
+        if (playerMovement != null)
+        {
+            playerMovement.PlayHitAnimation();
+        }
+        else if (anim != null)
+        {
+            anim.SetTrigger("Hit");
+        }
+
+        // 4. Kiểm tra chết
+        if (currentHP <= 0)
+            Die();
+    }
+
     public void TakeDamage(int damage) => TakeDamage((float)damage);
     public void TakeDamage(int damage, Vector2 from, float kb, float stun) => TakeDamage(damage);
 }

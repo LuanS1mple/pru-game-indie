@@ -327,4 +327,59 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
         Collider2D col = GetComponent<Collider2D>();
         if (col != null) col.enabled = false; // Tắt collider
     }
+
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Trap"))
+        {
+            // 1. Nếu Player đang sống và Coroutine chưa chạy, bắt đầu Coroutine
+            if (playerStats != null && !playerStats.isDead)
+            {
+                // Đảm bảo không có Coroutine nào đang chạy
+                if (trapDamageCoroutine != null)
+                {
+                    StopCoroutine(trapDamageCoroutine);
+                }
+
+                // 2. Kích hoạt Coroutine gây sát thương liên tục
+                trapDamageCoroutine = StartCoroutine(ApplyTrapDamagePeriodically());
+            }
+        }
+    }
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.CompareTag("Trap"))
+        {
+            // Dừng Coroutine khi Player rời khỏi bẫy
+            if (trapDamageCoroutine != null)
+            {
+                StopCoroutine(trapDamageCoroutine);
+                trapDamageCoroutine = null; // Đặt lại về null
+            }
+        }
+    }
+
+    // Hàm Coroutine mới để xử lý sát thương bẫy liên tục
+    IEnumerator ApplyTrapDamagePeriodically()
+    {
+        // Lặp vô hạn cho đến khi bị dừng bằng StopCoroutine (từ OnTriggerExit2D)
+        while (true)
+        {
+            // 1. Kiểm tra trạng thái: Nếu Player chết hoặc đang lăn, thoát
+            if (playerStats == null || playerStats.isDead || isRolling)
+            {
+                trapDamageCoroutine = null; // Đảm bảo đặt lại nếu thoát
+                yield break;
+            }
+
+            // 2. Áp dụng sát thương
+            playerStats.TakeDamageTrap(trapDamageAmount);
+            Debug.Log($"Player bị mất {trapDamageAmount} máu do bẫy (Coroutine). Máu hiện tại: {playerStats.currentHP}");
+            PlayHitAnimation(); // Kích hoạt animation trúng đòn
+
+            // 3. Chờ khoảng thời gian hồi chiêu sát thương
+            yield return new WaitForSeconds(trapDamageInterval);
+        }
+    }   
 }
