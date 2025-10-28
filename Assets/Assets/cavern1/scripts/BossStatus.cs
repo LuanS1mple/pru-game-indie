@@ -25,6 +25,8 @@ public class BossStatus : MonoBehaviour
     private BossMovement bossMovement;
     private Collider2D bossCollider;
 
+    public float GetCurrentHealth() => currentHealth;
+
     void Awake()
     {
         animator = GetComponent<Animator>();

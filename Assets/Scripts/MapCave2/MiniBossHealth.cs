@@ -29,6 +29,8 @@ public class MiniBossHealth : MonoBehaviour
     private Animator anim;
     private bool isDead = false;
 
+    public int GetCurrentHealth() => currentHP;
+
     void Start()
     {
         currentHP = maxHP;
