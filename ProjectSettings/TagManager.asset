@@ -12,6 +12,7 @@ TagManager:
   - Item
   - Hint
   - Map1_key
+  - Trap
   layers:
   - Default
   - TransparentFX
