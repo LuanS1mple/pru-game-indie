@@ -111,6 +111,8 @@ public class EnemyStats_IDamageable : MonoBehaviour
     float _origGravity;
     RigidbodyConstraints2D _origConstraints;
 
+    public bool IsDead => dead;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
