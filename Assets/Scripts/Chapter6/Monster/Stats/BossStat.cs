@@ -18,6 +18,7 @@ public class BossStat : MonoBehaviour
     private Collider2D bossCollider;
 
     [HideInInspector] public bool isDead = false;
+    
 
     void Start()
     {

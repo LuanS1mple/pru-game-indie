@@ -30,6 +30,8 @@ public class MiniBossHealth : MonoBehaviour
     private bool isDead = false;
     private bool isInvulnerable = false; // 🛡 Tránh nhận damage liên tục trong cùng lần chém
 
+    public int GetCurrentHealth() => currentHP;
+
     void Start()
     {
         currentHP = maxHP;
