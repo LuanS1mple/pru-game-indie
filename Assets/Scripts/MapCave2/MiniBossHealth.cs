@@ -19,15 +19,16 @@ public class MiniBossHealth : MonoBehaviour
     [Header("Animation Triggers")]
     public string hurtTrigger = "Hurt";
     public string deadTrigger = "Dead";
-    public string idleState = "IdleMiniBoss"; // 👈 Tên state Idle trong Animator
+    public string idleState = "IdleMiniBoss";
 
     [Header("Optional")]
     public float deathDelay = 1f;
-    public float hurtRecoverDelay = 0.6f; // 👈 Thời gian chờ sau Hurt để quay lại tấn công
+    public float hurtRecoverDelay = 0.6f;
     public GameObject explosionVFX;
 
     private Animator anim;
     private bool isDead = false;
+    private bool isInvulnerable = false; // 🛡 Tránh nhận damage liên tục trong cùng lần chém
 
     void Start()
     {
@@ -39,12 +40,16 @@ public class MiniBossHealth : MonoBehaviour
         else
             Debug.Log($"[MiniBossHealth] ✅ Animator tìm thấy: {anim.gameObject.name}");
 
-        audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
+        GameObject audioObj = GameObject.FindGameObjectWithTag("Audio");
+        if (audioObj != null)
+            audioManager = audioObj.GetComponent<AudioManager>();
+        else
+            Debug.LogWarning("[MiniBossHealth] ⚠ Không tìm thấy object có tag 'Audio' trong scene!");
     }
 
     public void TakeDamage(int damage)
     {
-        if (isDead) return;
+        if (isDead || isInvulnerable) return;
 
         currentHP -= damage;
         Debug.Log($"[MiniBossHealth] 💥 Bị đánh! HP: {currentHP}/{maxHP}");
@@ -57,17 +62,18 @@ public class MiniBossHealth : MonoBehaviour
 
     private IEnumerator HurtAndRecover()
     {
+        isInvulnerable = true; // 🛑 Tránh ăn damage thêm khi đang trong hurt state
         PlayHurtAnimation();
 
-        // ⏳ Chờ một chút cho animation Hurt chạy xong
         yield return new WaitForSeconds(hurtRecoverDelay);
 
-        // 👇 Quay lại trạng thái tấn công (Idle hoặc tự logic tấn công)
         if (!isDead && anim != null)
         {
             anim.Play(idleState);
-            Debug.Log("[MiniBossHealth] ↩ Quay lại trạng thái IdleMiniBoss (chuẩn bị tấn công lại).");
+            Debug.Log("[MiniBossHealth] ↩ Quay lại trạng thái IdleMiniBoss.");
         }
+
+        isInvulnerable = false; // ✅ Cho phép nhận damage lại sau khi hồi phục
     }
 
     private void PlayHurtAnimation()
@@ -87,6 +93,7 @@ public class MiniBossHealth : MonoBehaviour
     private void Die()
     {
         if (isDead) return;
+
         isDead = true;
         OnMiniBossDied?.Invoke();
         Debug.Log("[MiniBossHealth] ☠ Bắt đầu quy trình chết...");
@@ -102,11 +109,10 @@ public class MiniBossHealth : MonoBehaviour
 
         if (explosionVFX != null)
             Instantiate(explosionVFX, transform.position, Quaternion.identity);
-        //Âm thanh quái chết
+
         if (audioManager != null)
-        {
             audioManager.PlaySFX(audioManager.monsterDeath);
-        }
+
         StartCoroutine(DestroyAfterDelay());
     }
 
@@ -117,16 +123,23 @@ public class MiniBossHealth : MonoBehaviour
         Destroy(gameObject);
     }
 
+    // ✅ CHỈ nhận damage khi trúng hitbox tấn công của player (tag = "TestAttack")
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.CompareTag("TestAttack"))
+        if (isDead || isInvulnerable) return; // ⛔ Không nhận thêm damage khi đang hurt
+        if (!collision.CompareTag("TestAttack")) return;
+
+        PlayerCombat playerCombat = collision.GetComponentInParent<PlayerCombat>();
+        if (playerCombat != null && playerCombat.playerStats != null)
         {
-            Debug.Log($"[MiniBossHealth] ⚔ Bị tấn công bởi {collision.name}");
-            TakeDamage(1);
+            int damage = (int)playerCombat.playerStats.attack;
+            Debug.Log($"[MiniBossHealth] ⚔ Bị tấn công bởi {collision.name}, Damage: {damage}");
+            TakeDamage(damage);
         }
     }
 }
 
+// 🔹 Kiểm tra animator parameter
 public static class AnimatorExtensions
 {
     public static bool HasParameterOfType(this Animator animator, string name, AnimatorControllerParameterType type)
