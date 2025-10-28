@@ -32,8 +32,11 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
     [Tooltip("Thời gian hồi chiêu của kỹ năng Gió Bụi")]
     public float windBlastCooldown = 10f; // Ví dụ: 3 giây
     private float nextWindBlastTime = 0f; // Thời điểm kỹ năng sẵn sàng lần tới
+    [Header("Trap Damage Settings")]
+    public float trapDamageInterval = 1.5f;
+    public int trapDamageAmount = 10;
+    private Coroutine trapDamageCoroutine;
 
-    
     private void Awake()
     {
         audioManager = GameObject.FindGameObjectWithTag("Audio")?.GetComponent<AudioManager>(); // Thêm ? để tránh lỗi nếu không tìm thấy
