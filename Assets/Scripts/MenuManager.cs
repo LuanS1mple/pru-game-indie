@@ -19,6 +19,6 @@ public class MenuManager : MonoBehaviour
     public void RetryGame()
     {
         Debug.Log("Chuyển lại màn hình intro");
-        SceneManager.LoadScene("Defeat_End");
+        SceneManager.LoadScene("IntroScene");
     }
 }
