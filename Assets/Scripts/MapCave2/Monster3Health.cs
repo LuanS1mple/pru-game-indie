@@ -1,17 +1,17 @@
-﻿using System.Collections;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 using Game.Enemy;
 
-public class MiniBossHealth : MonoBehaviour
+public class Monster3Health : MonoBehaviour
 {
     private AudioManager audioManager;
 
     [Header("Events")]
-    public UnityEvent OnMiniBossDied;
+    public UnityEvent OnMonsterDied;
 
-    [Header("MiniBoss Stats")]
-    public MiniBossStats stats; // kéo thả vào Inspector (recommended)
+    [Header("Monster Stats")]
+    public Monster3Stats stats; // K�o th? trong Inspector
 
     [Header("Animator Settings")]
     public Animator animatorObject;
@@ -19,57 +19,54 @@ public class MiniBossHealth : MonoBehaviour
     [Header("Animation Triggers")]
     public string hurtTrigger = "Hurt";
     public string deadTrigger = "Dead";
-    public string idleState = "IdleMiniBoss";
+    public string idleState = "IdleMonster3";
 
-    [Header("Optional")]
-    public float deathDelay = 1f;
-    public float hurtRecoverDelay = 0.6f;
-    public GameObject explosionVFX;
+    [Header("Optional Settings")]
+    public float deathDelay = 0.8f;
+    public float hurtRecoverDelay = 0.5f;
+    public GameObject deathVFX;
 
     private Animator anim;
     private bool isDead = false;
     private bool isInvulnerable = false;
 
-    // tiện ích đọc HP
     public int GetCurrentHealth() => stats != null ? stats.currentHP : 0;
 
     void Start()
     {
-        // nếu bạn quên kéo stats trong Inspector, cố lấy component tự động
+        // G�n t? �?ng n?u qu�n k�o trong Inspector
         if (stats == null)
         {
-            stats = GetComponent<MiniBossStats>();
+            stats = GetComponent<Monster3Stats>();
             if (stats == null)
             {
-                Debug.LogError("[MiniBossHealth] ❌ Thiếu tham chiếu MiniBossStats! Gắn MiniBossStats hoặc kéo vào Inspector.");
+                Debug.LogError("[Monster3Health] ? Thi?u tham chi?u Monster3Stats! H?y g?n ho?c k�o v�o Inspector.");
                 enabled = false;
                 return;
             }
         }
 
-        // init HP
         stats.Init();
 
         anim = animatorObject != null ? animatorObject : GetComponentInChildren<Animator>();
         if (anim == null)
-            Debug.LogError($"[MiniBossHealth] ❌ Không tìm thấy Animator trong {name}!");
+            Debug.LogError($"[Monster3Health] ? Kh�ng t?m th?y Animator trong {name}!");
         else
-            Debug.Log($"[MiniBossHealth] ✅ Animator tìm thấy: {anim.gameObject.name}");
+            Debug.Log($"[Monster3Health] ? Animator t?m th?y: {anim.gameObject.name}");
 
         GameObject audioObj = GameObject.FindGameObjectWithTag("Audio");
         if (audioObj != null)
             audioManager = audioObj.GetComponent<AudioManager>();
         else
-            Debug.LogWarning("[MiniBossHealth] ⚠ Không tìm thấy object có tag 'Audio' trong scene!");
+            Debug.LogWarning("[Monster3Health] ? Kh�ng t?m th?y object c� tag 'Audio' trong scene!");
     }
 
     public void TakeDamage(int damage)
     {
         if (isDead || isInvulnerable || stats == null) return;
 
-        // Apply damage to stats
         stats.TakeDamage(damage);
-        Debug.Log($"[MiniBossHealth] 💥 Bị đánh! HP: {stats.currentHP}/{stats.maxHP}");
+        Debug.Log($"[Monster3Health] ?? B? ��nh! HP: {stats.currentHP}/{stats.maxHP}");
 
         if (!stats.IsDead())
             StartCoroutine(HurtAndRecover());
@@ -86,9 +83,8 @@ public class MiniBossHealth : MonoBehaviour
 
         if (!isDead && anim != null)
         {
-            // Play idle state by name (ensure state exists)
             anim.Play(idleState);
-            Debug.Log("[MiniBossHealth] ↩ Quay lại trạng thái IdleMiniBoss.");
+            Debug.Log("[Monster3Health] ? Quay l?i tr?ng th�i IdleMonster3.");
         }
 
         isInvulnerable = false;
@@ -98,44 +94,43 @@ public class MiniBossHealth : MonoBehaviour
     {
         if (anim == null) return;
 
-        // Set trigger safely (if trigger doesn't exist, just warn)
         try
         {
             anim.SetTrigger(hurtTrigger);
-            Debug.Log($"[MiniBossHealth] ▶ Gọi trigger: {hurtTrigger}");
+            Debug.Log($"[Monster3Health] ? G?i trigger: {hurtTrigger}");
         }
-        catch (System.Exception)
+        catch
         {
-            Debug.LogWarning($"[MiniBossHealth] ⚠ Animator có thể không có trigger '{hurtTrigger}'.");
+            Debug.LogWarning($"[Monster3Health] ? Animator kh�ng c� trigger '{hurtTrigger}'.");
         }
     }
 
     private void Die()
     {
         if (isDead) return;
-
         isDead = true;
-        OnMiniBossDied?.Invoke();
-        Debug.Log("[MiniBossHealth] ☠ Bắt đầu quy trình chết...");
+
+        OnMonsterDied?.Invoke();
+        Debug.Log("[Monster3Health] ? Qu�i ch?t...");
 
         try
         {
             if (anim != null)
             {
                 anim.SetTrigger(deadTrigger);
-                Debug.Log($"[MiniBossHealth] ▶ Gọi trigger: {deadTrigger}");
+                Debug.Log($"[Monster3Health] ? G?i trigger: {deadTrigger}");
             }
         }
-        catch (System.Exception)
+        catch
         {
-            Debug.LogWarning($"[MiniBossHealth] ⚠ Animator có thể không có trigger '{deadTrigger}'.");
+            Debug.LogWarning($"[Monster3Health] ? Animator kh�ng c� trigger '{deadTrigger}'.");
         }
 
         foreach (var col in GetComponentsInChildren<Collider2D>())
             col.enabled = false;
 
-        if (explosionVFX != null)
-            Instantiate(explosionVFX, transform.position, Quaternion.identity);
+        if (deathVFX != null)
+            Instantiate(deathVFX, transform.position, Quaternion.identity);
 
         if (audioManager != null)
             audioManager.PlaySFX(audioManager.monsterDeath);
@@ -146,11 +141,10 @@ public class MiniBossHealth : MonoBehaviour
     private IEnumerator DestroyAfterDelay()
     {
         yield return new WaitForSeconds(deathDelay);
-        Debug.Log("[MiniBossHealth] ❌ Xoá miniboss khỏi Scene.");
+        Debug.Log("[Monster3Health] ? Xo� Monster3 kh?i Scene.");
         Destroy(gameObject);
     }
 
-    // Nhận damage khi trúng hitbox tấn công player (tag = "TestAttack")
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (isDead || isInvulnerable || stats == null) return;
@@ -160,7 +154,7 @@ public class MiniBossHealth : MonoBehaviour
         if (playerCombat != null && playerCombat.playerStats != null)
         {
             int damage = (int)playerCombat.playerStats.attack;
-            Debug.Log($"[MiniBossHealth] ⚔ Bị tấn công bởi {collision.name}, Damage: {damage}");
+            Debug.Log($"[Monster3Health] ? B? t?n c�ng b?i {collision.name}, Damage: {damage}");
             TakeDamage(damage);
         }
     }
