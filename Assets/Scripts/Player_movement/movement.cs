@@ -123,26 +123,25 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
     IEnumerator CastCrossBlastCoroutine()
     {
         // 1. KIỂM TRA COOLDOWN VÀ TRẠNG THÁI
-        // ⭐ SỬ DỤNG nextCrossBlastTime ⭐
         if (Time.time < nextCrossBlastTime || isRolling || (playerStats != null && playerStats.isDead))
         {
             yield break;
         }
 
-        if (windBlastPrefab == null || windSpawnPoint == null)
+        // ⭐ DÙNG CÁC BIẾN MỚI ⭐
+        if (crossBlastPrefab == null || crossSpawnPoint == null)
         {
             Debug.LogError("Thiếu Prefab Kỹ năng CrossBlast hoặc Spawn Point!");
             yield break;
         }
 
         // 2. CẬP NHẬT THỜI GIAN HỒI CHIÊU
-        // ⭐ SỬ DỤNG crossBlastCooldown ⭐
         nextCrossBlastTime = Time.time + crossBlastCooldown;
 
         // 3. Kích hoạt Animation Cast của Player
         if (animator)
         {
-            animator.SetTrigger("skill2");
+            animator.SetTrigger("cross");
         }
 
         // 4. TẠM DỪNG SCRIPT TẠI ĐÂY TRONG 0.2 GIÂY
@@ -152,9 +151,10 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
         float scaleX = facingRight ? 1f : -1f;
 
         // 6. Sinh ra Prefab tại vị trí đã thiết lập
+        // ⭐ DÙNG crossBlastPrefab và crossSpawnPoint ⭐
         GameObject skillInstance = Instantiate(
-            windBlastPrefab, // Giả định windBlastPrefab là Prefab CrossBlast
-            windSpawnPoint.position,
+            crossBlastPrefab,
+            crossSpawnPoint.position,
             Quaternion.identity
         );
 
@@ -169,12 +169,18 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
             Debug.LogError("Prefab không có script CrossBlast.cs!");
         }
     }
+
+
     IEnumerator CastWindBlastCoroutine()
     {
         // 1. KIỂM TRA COOLDOWN VÀ TRẠNG THÁI (Giữ nguyên)
-        if (Time.time < nextWindBlastTime || isRolling || (playerStats != null && playerStats.isDead))
+        if (Time.time < nextCrossBlastTime || isRolling || (playerStats != null && playerStats.isDead) || !isGrounded) // ⭐ THÊM !isGrounded ⭐
         {
-            yield break; // Trả về false nếu không thể Cast
+            if (!isGrounded)
+            {
+                Debug.Log("Không thể Cast CrossBlast khi đang trên không!"); // Thông báo tùy chọn
+            }
+            yield break;
         }
 
         if (windBlastPrefab == null || windSpawnPoint == null)

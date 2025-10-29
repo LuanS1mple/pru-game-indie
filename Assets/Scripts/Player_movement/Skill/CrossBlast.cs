@@ -4,7 +4,7 @@ public class CrossBlast : MonoBehaviour
 {
     [Header("Projectile Settings")]
     public float speed = 20f;
-    public float maxDistance = 10f; // ⭐ MỚI: Giới hạn khoảng cách
+    public float maxDistance = 9f; // ⭐ MỚI: Giới hạn khoảng cách
     private Rigidbody2D rb;
     private Vector3 startPosition;  // ⭐ MỚI: Vị trí bắt đầu
     private float flyDirectionX;
@@ -15,7 +15,7 @@ public class CrossBlast : MonoBehaviour
     [Header("Explosion Settings")]
     public GameObject explosionPrefab;
 
-    // Animator và Fly Animation Name không cần thiết nếu animation chạy sẵn
+    
 
     private bool hasHit = false;
 
@@ -29,20 +29,27 @@ public class CrossBlast : MonoBehaviour
         // ⭐ XÓA Dòng kiểm tra Animator
     }
 
+    // Trong script CrossBlast.cs
     public void Initialize(float scaleX)
     {
-        // Xoay hình ảnh
-        transform.localScale = new Vector3(scaleX, transform.localScale.y, transform.localScale.z);
+        
+        float originalScaleX = Mathf.Abs(transform.localScale.x);
+        transform.localScale = new Vector3(
+            originalScaleX * scaleX,
+            transform.localScale.y,
+            transform.localScale.z
+        );
+
+        // 3. Khởi tạo hướng bay và vật lý
         flyDirectionX = scaleX;
 
-        // Bắt đầu bay ngang theo trục X
         if (rb != null)
         {
+            // Tốc độ bay sẽ theo hướng (flyDirectionX là 1 hoặc -1)
             rb.velocity = new Vector2(flyDirectionX * speed, 0f);
         }
-
-        // ⭐ XÓA Dòng kích hoạt Animation (vì nó chạy sẵn)
     }
+
 
     private void Update()
     {
@@ -60,7 +67,7 @@ public class CrossBlast : MonoBehaviour
         if (hasHit) return;
 
         // Nếu chạm vào vật cản (không phải Enemy)
-        if (collision.gameObject.layer == LayerMask.NameToLayer("Default"))
+        if (collision.gameObject.layer == LayerMask.NameToLayer("Ground"))
         {
             hasHit = true;
             // Dừng bay

@@ -58,12 +58,7 @@ public class ExplosionHandler : MonoBehaviour
                 // Lấy GameObject gốc của Enemy
                 GameObject enemyObject = enemyStats.gameObject;
 
-                // 1. Loại trừ Enemy đã bị WindBlast va chạm lần đầu
-                if (enemyObject == initialHitEnemy)
-                {
-                    // Enemy này đã nhận sát thương va chạm từ WindBlast, bỏ qua sát thương nổ
-                    continue;
-                }
+                
 
                 // 2. Gây sát thương nổ (và chỉ 1 lần)
                 if (!hitEnemies.Contains(enemyObject))

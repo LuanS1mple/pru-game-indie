@@ -23,10 +23,10 @@ public class WindBlast : MonoBehaviour
     {
         TryDealDamage(collision);
     }
-    void OnTriggerStay2D(Collider2D collision)
-    {
-        TryDealDamage(collision);
-    }
+    //void OnTriggerStay2D(Collider2D collision)
+    //{
+    //    TryDealDamage(collision);
+    //}
 
     private void TryDealDamage(Collider2D collision)
     {
