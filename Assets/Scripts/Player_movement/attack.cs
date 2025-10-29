@@ -29,6 +29,15 @@ public class attack : MonoBehaviour
 
     void Update()
     {
+        if (stats != null && stats.isDead)
+        {
+            // Cần đảm bảo animation tấn công (nếu đang chạy) bị dừng
+            isAttacking = false;
+            if (moveScript != null)
+                moveScript.SetCanFlip(true); // Mở khóa xoay để nhân vật không bị kẹt hướng
+
+            return; // Thoát khỏi hàm Update, không xử lý HandleAttack() nữa
+        }
         HandleAttack();
        
         // Nếu combo hết hạn → reset

@@ -1,7 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic; // Cần thiết cho List/HashSet nếu dùng
-
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using Cinemachine;
 public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
 {
     AudioManager audioManager;
@@ -32,11 +34,24 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
     [Tooltip("Thời gian hồi chiêu của kỹ năng Gió Bụi")]
     public float windBlastCooldown = 10f; // Ví dụ: 3 giây
     private float nextWindBlastTime = 0f; // Thời điểm kỹ năng sẵn sàng lần tới
+    [Tooltip("Prefab của chiêu CrossBlast")]
+    public GameObject crossBlastPrefab;
+    [Tooltip("Vị trí xuất phát của chiêu CrossBlast")]
+    public Transform crossSpawnPoint;
+    [Tooltip("Thời gian hồi chiêu của kỹ năng CrossBlast")]
+    public float crossBlastCooldown = 10f; 
+    private float nextCrossBlastTime = 0f;
     [Header("Trap Damage Settings")]
     public float trapDamageInterval = 1.5f;
     public int trapDamageAmount = 10;
     private Coroutine trapDamageCoroutine;
 
+    [Header("Death Sequence Settings")]
+    public float deathZoomSize = 2.5f; // Kích thước orthographic size khi zoom (giá trị nhỏ hơn = zoom gần hơn)
+    public float zoomSpeed = 2f;       // Tốc độ zoom camera
+    public float deathAnimDuration = 1.5f; // Thời gian đợi animation chết chạy xong (Thay đổi tùy theo animation của bạn)
+    private Camera mainCamera;
+    private Cinemachine.CinemachineBrain cinemachineBrain;
     private void Awake()
     {
         audioManager = GameObject.FindGameObjectWithTag("Audio")?.GetComponent<AudioManager>(); // Thêm ? để tránh lỗi nếu không tìm thấy
@@ -47,6 +62,17 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
         if (playerStats == null)
         {
             Debug.LogError("Player thiếu component BaseStats!", this.gameObject);
+        }
+        mainCamera = Camera.main;
+        if (mainCamera == null)
+        {
+            Debug.LogError("Không tìm thấy Main Camera!");
+        }
+
+        // ⭐ LẤY THAM CHIẾU CINEMACHINE BRAIN ⭐
+        if (mainCamera != null)
+        {
+            cinemachineBrain = mainCamera.GetComponent<Cinemachine.CinemachineBrain>();
         }
     }
 
@@ -70,7 +96,7 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
         HandleMovement(move);
         HandleFacingDirection(move);
 
-        if (Input.GetKeyDown(KeyCode.W))
+        if (Input.GetKeyDown(KeyCode.Space))
         {
             HandleJump();
         }
@@ -84,18 +110,77 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
     void HandleSkillInput()
     {
         // Ví dụ: Kỹ năng kích hoạt bằng phím 'F'
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.E))
         {
             // ⭐ SỬ DỤNG StartCoroutine để gọi hàm mới
             StartCoroutine(CastWindBlastCoroutine());
         }
+        if (Input.GetMouseButtonDown(1))
+        {
+            StartCoroutine(CastCrossBlastCoroutine());
+        }
     }
+    IEnumerator CastCrossBlastCoroutine()
+    {
+        // 1. KIỂM TRA COOLDOWN VÀ TRẠNG THÁI
+        if (Time.time < nextCrossBlastTime || isRolling || (playerStats != null && playerStats.isDead))
+        {
+            yield break;
+        }
+
+        // ⭐ DÙNG CÁC BIẾN MỚI ⭐
+        if (crossBlastPrefab == null || crossSpawnPoint == null)
+        {
+            Debug.LogError("Thiếu Prefab Kỹ năng CrossBlast hoặc Spawn Point!");
+            yield break;
+        }
+
+        // 2. CẬP NHẬT THỜI GIAN HỒI CHIÊU
+        nextCrossBlastTime = Time.time + crossBlastCooldown;
+
+        // 3. Kích hoạt Animation Cast của Player
+        if (animator)
+        {
+            animator.SetTrigger("cross");
+        }
+
+        // 4. TẠM DỪNG SCRIPT TẠI ĐÂY TRONG 0.2 GIÂY
+        yield return new WaitForSeconds(0.2f);
+
+        // 5. Xác định hướng quay (Scale X)
+        float scaleX = facingRight ? 1f : -1f;
+
+        // 6. Sinh ra Prefab tại vị trí đã thiết lập
+        // ⭐ DÙNG crossBlastPrefab và crossSpawnPoint ⭐
+        GameObject skillInstance = Instantiate(
+            crossBlastPrefab,
+            crossSpawnPoint.position,
+            Quaternion.identity
+        );
+
+        // 7. Truy cập script CrossBlast và khởi tạo
+        CrossBlast blastScript = skillInstance.GetComponent<CrossBlast>();
+        if (blastScript != null)
+        {
+            blastScript.Initialize(scaleX);
+        }
+        else
+        {
+            Debug.LogError("Prefab không có script CrossBlast.cs!");
+        }
+    }
+
+
     IEnumerator CastWindBlastCoroutine()
     {
         // 1. KIỂM TRA COOLDOWN VÀ TRẠNG THÁI (Giữ nguyên)
-        if (Time.time < nextWindBlastTime || isRolling || (playerStats != null && playerStats.isDead))
+        if (Time.time < nextCrossBlastTime || isRolling || (playerStats != null && playerStats.isDead) || !isGrounded) // ⭐ THÊM !isGrounded ⭐
         {
-            yield break; // Trả về false nếu không thể Cast
+            if (!isGrounded)
+            {
+                Debug.Log("Không thể Cast CrossBlast khi đang trên không!"); // Thông báo tùy chọn
+            }
+            yield break;
         }
 
         if (windBlastPrefab == null || windSpawnPoint == null)
@@ -311,24 +396,65 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
 
     public void HandleDeath()
     {
+        // 1. Kích hoạt animation chết
         if (animator != null)
         {
-            animator.SetTrigger("dead"); // Chữ thường theo code cũ của bạn
+            animator.SetTrigger("dead");
             Debug.Log("Player triggered Dead animation!");
         }
 
+        // 2. Tắt tất cả hành động di chuyển/vật lý ngay lập tức
         if (rb != null)
         {
             rb.velocity = Vector2.zero;
-            rb.simulated = false; // Tắt vật lý
+            rb.simulated = false;
         }
-        this.enabled = false; // Tắt script này
 
+        // 3. Khóa các Collider
         Collider2D col = GetComponent<Collider2D>();
-        if (col != null) col.enabled = false; // Tắt collider
+        if (col != null) col.enabled = false;
+
+        // 4. ⭐ BẮT ĐẦU COROUTINE ĐIỀU KHIỂN QUÁ TRÌNH CHẾT VÀ CHUYỂN SCENE ⭐
+        StartCoroutine(HandleDeathSequence("Defeat_End"));
     }
+    // ⭐ COROUTINE MỚI: Xử lý quá trình chết và chuyển cảnh
+    IEnumerator HandleDeathSequence(string sceneName)
+    {
+        // 1. KHÓA INPUT BẰNG CÁCH TẮT SCRIPT NÀY
+        this.enabled = false;
 
+        // ⭐ TẮT CINEMACHINE BRAIN ĐỂ NÓ KHÔNG GHI ĐÈ CAMERA SIZE ⭐
+        if (cinemachineBrain != null)
+        {
+            cinemachineBrain.enabled = false;
+        }
 
+        // 2. BẮT ĐẦU ZOOM CAMERA (Bây giờ nó sẽ hoạt động)
+        if (mainCamera != null && mainCamera.orthographic)
+        {
+            float startSize = mainCamera.orthographicSize;
+            float targetSize = deathZoomSize;
+            float elapsed = 0f;
+
+            // Camera cần phải được đặt ở vị trí nhân vật để zoom tập trung đúng
+            // Nếu bạn đang dùng Cinemachine, Virtual Camera sẽ tự đặt vị trí, 
+            // nên khi tắt Brain, camera sẽ giữ nguyên vị trí cuối cùng đó.
+
+            while (elapsed < zoomSpeed)
+            {
+                mainCamera.orthographicSize = Mathf.Lerp(startSize, targetSize, elapsed / zoomSpeed);
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+            mainCamera.orthographicSize = targetSize;
+        }
+
+        // 3. CHỜ ANIMATION CHẾT CHẠY XONG
+        yield return new WaitForSeconds(deathAnimDuration);
+
+        // 4. CHUYỂN SCENE CUỐI CÙNG
+        SceneManager.LoadScene(sceneName);
+    }
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Trap"))
