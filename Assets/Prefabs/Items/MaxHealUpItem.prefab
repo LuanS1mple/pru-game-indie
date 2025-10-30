@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 5301430811643917118}
   - component: {fileID: 5301430811643917105}
   - component: {fileID: 5301430811643917104}
-  m_Layer: 0
+  m_Layer: 16
   m_Name: MaxHealUpItem
-  m_TagString: Untagged
+  m_TagString: Item
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -74,7 +74,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 10
   m_Sprite: {fileID: 21300000, guid: 208b97d4ee4cf9440babf04f85f437b9, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -116,7 +116,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   type: 0
   amount: 20
-  healToFullOnMaxUp: 1
   iconToShow: {fileID: 21300000, guid: 208b97d4ee4cf9440babf04f85f437b9, type: 3}
   sfx: {fileID: 0}
   pressFIndicator: {fileID: 0}
