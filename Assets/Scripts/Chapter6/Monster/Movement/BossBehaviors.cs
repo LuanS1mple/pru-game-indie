@@ -9,6 +9,7 @@ public class BossBehaviors : MonoBehaviour
     private Animator animator;
     public GameObject target;
     public GameObject castPrefab;
+    public GameObject castFrame;
     public BossStat bossStat;
 
     [Header("Settings")]
@@ -102,10 +103,20 @@ public class BossBehaviors : MonoBehaviour
 
         yield return new WaitForSeconds(0.8f);
 
-        if (target != null && castPrefab != null)
+        if (target != null && castPrefab != null && castFrame!=null)
         {
-            GameObject obj = Instantiate(castPrefab, target.transform.position, Quaternion.identity);
-            Destroy(obj, 1f);
+            if (Random.value < 0.5f && castPrefab != null)
+            {
+                Vector3 spawnPos = new Vector3(target.transform.position.x, -27.49f, target.transform.position.z);
+                GameObject obj = Instantiate(castPrefab, spawnPos, Quaternion.identity);
+                Destroy(obj, 1f);
+            }
+            else if (castFrame != null)
+            {
+                Vector3 spawnPos = new Vector3(target.transform.position.x, -16.36f, target.transform.position.z);
+                GameObject obj = Instantiate(castFrame, spawnPos, Quaternion.identity);
+                Destroy(obj, 4f);
+            }
         }
 
         IsCast = false;
