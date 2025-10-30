@@ -377,15 +377,12 @@ public class EnemyPathFollower : BaseStats
         if (isDead)
             Die();
     }
-    // --- THÊM VÀO khu vực khai báo biến ---
-    private bool managerNotified = false; // Cờ bảo vệ
 
-    // --- SỬA HÀM Die() ---
+    private bool managerNotified = false; 
+
     protected override void Die()
     {
         base.Die();
-
-        // ⛔ CHỈ thông báo cho Manager nếu CHƯA thông báo ⛔
         if (manager != null && !managerNotified)
         {
             manager.EnemyDied();
@@ -394,7 +391,6 @@ public class EnemyPathFollower : BaseStats
         }
         else if (managerNotified)
         {
-            // Dòng Debug này sẽ giúp bạn xác nhận rằng hàm Die() bị gọi lại
             Debug.LogWarning($"⚠️ Hàm Die được gọi lần nữa, nhưng đã bảo vệ Manager!");
         }
 

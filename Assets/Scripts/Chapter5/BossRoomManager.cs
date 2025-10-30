@@ -1,55 +1,46 @@
 using UnityEngine;
+using System.Collections;
+using Cinemachine;
 
 public class BossRoomManager : MonoBehaviour
 {
-    // Kéo thả các Collider của tường ảo vào đây
-    [Header("Tường Chắn")]
-    public Collider2D entryBarrierCollider; // Ngăn vào phòng Boss
-    public Collider2D exitBarrierCollider;  // Ngăn quay ra khỏi phòng Boss
+    [Header("1. Barriers & Trigger")]
+    public Collider2D entryBarrierCollider; // Tường vào
+    public Collider2D exitBarrierCollider;  // Tường ra
+    public GameObject bossFightTrigger;     // Trigger để bắt đầu Boss fight
 
-    // Kéo thả Trigger kích hoạt vào đây
-    [Header("Kích Hoạt")]
-    public GameObject bossFightTrigger; // Trigger ở cửa phòng Boss
+    [Header("2. Camera Confiner")]
+    public CinemachineConfiner2D cameraConfiner;
+    public Collider2D normalRoomConfiner;   // Vùng camera chỉ phòng thường
+    public Collider2D combinedConfiner;     // Vùng camera bao 2 phòng
+    public Collider2D bossRoomConfiner;     // Vùng camera chỉ phòng boss
 
-    // Số lượng quái cần phải tiêu diệt để mở lối vào
-    [Header("Quản lý Quái")]
-    public int enemiesRemaining = 0; // Đặt số lượng quái ban đầu trong Inspector
-
-    // Trạng thái Boss
+    [Header("3. Game Logic")]
+    public int enemiesRemaining = 0;
     private bool isBossActive = false;
     private bool bossDefeated = false;
 
     void Start()
     {
-        // 1. Khởi tạo: Tường chắn VÀO phải BẬT để ngăn Player
-        if (entryBarrierCollider != null)
-        {
-            entryBarrierCollider.enabled = true;
-        }
-        // Tường chắn RA ban đầu phải TẮT
-        if (exitBarrierCollider != null)
-        {
-            exitBarrierCollider.enabled = false;
-        }
+        // Ban đầu: tường vào đóng, tường ra mở
+        if (entryBarrierCollider != null) entryBarrierCollider.enabled = true;
+        if (exitBarrierCollider != null) exitBarrierCollider.enabled = false;
+        if (bossFightTrigger != null) bossFightTrigger.SetActive(false);
 
-        // Tắt Trigger kích hoạt Boss cho đến khi cần thiết (thường là để kích hoạt Boss)
-        if (bossFightTrigger != null)
+        // Giới hạn camera trong phòng thường
+        if (cameraConfiner != null && normalRoomConfiner != null)
         {
-            bossFightTrigger.SetActive(false);
+            cameraConfiner.m_BoundingShape2D = normalRoomConfiner;
+            cameraConfiner.InvalidateCache();
         }
-
-        Debug.Log("Phòng Boss đã sẵn sàng. Cần tiêu diệt " + enemiesRemaining + " quái.");
     }
 
-    // Hàm này được Quái gọi khi nó bị tiêu diệt
+    // --- Khi 1 con quái chết ---
     public void EnemyDied()
     {
         if (enemiesRemaining > 0)
         {
             enemiesRemaining--;
-            Debug.Log("Quái còn lại: " + enemiesRemaining);
-
-            // 2. Logic Mở Tường Lần 1 (Vào phòng Boss)
             if (enemiesRemaining <= 0 && !isBossActive && !bossDefeated)
             {
                 UnlockEntry();
@@ -59,71 +50,81 @@ public class BossRoomManager : MonoBehaviour
 
     private void UnlockEntry()
     {
-        // Vô hiệu hóa tường chắn VÀO
-        if (entryBarrierCollider != null)
-        {
-            entryBarrierCollider.enabled = false;
-        }
-
-        // Bật Trigger để Player đi vào phòng Boss và kích hoạt Boss Fight
-        if (bossFightTrigger != null)
-        {
-            bossFightTrigger.SetActive(true);
-        }
-        Debug.Log("✅ Tất cả quái đã chết! Tường chắn đã mở. Mời Player vào.");
+        StartCoroutine(OpenEntryRoutine());
     }
 
-    // Hàm này được BossFightTrigger gọi khi Player chạm vào
+    private IEnumerator OpenEntryRoutine()
+    {
+        yield return null;
+
+        // Mở tường chắn vào boss
+        if (entryBarrierCollider != null) entryBarrierCollider.enabled = false;
+
+        // Mở rộng vùng camera bao cả 2 phòng
+        if (cameraConfiner != null && combinedConfiner != null)
+        {
+            cameraConfiner.m_BoundingShape2D = combinedConfiner;
+            cameraConfiner.InvalidateCache();
+        }
+
+        // Cho phép player đi vào vùng boss
+        if (bossFightTrigger != null) bossFightTrigger.SetActive(true);
+
+        Debug.Log("✅ Quái chết hết. Đang mở đường sang phòng Boss!");
+    }
+
+    // --- Khi player bước vào vùng Boss ---
     public void StartBossFight()
     {
-        if (!isBossActive && !bossDefeated)
-        {
-            isBossActive = true;
+        if (isBossActive || bossDefeated) return;
+        isBossActive = true;
 
-            // 3. Logic Đóng Tường Lần 2 (Bắt đầu đánh Boss)
-            // Kích hoạt lại tường chắn VÀO để Player không quay ra
-            if (entryBarrierCollider != null)
-            {
-                entryBarrierCollider.enabled = true;
-            }
-
-            // Kích hoạt tường chắn RA (nếu cần thiết, để chắn lối đi tiếp)
-            if (exitBarrierCollider != null)
-            {
-                exitBarrierCollider.enabled = true;
-            }
-
-            // Vô hiệu hóa Trigger này sau khi đã dùng
-            if (bossFightTrigger != null)
-            {
-                bossFightTrigger.SetActive(false);
-            }
-
-            // Kích hoạt Boss (ví dụ: Boss.GetComponent<Boss>().ActivateBoss();)
-            Debug.Log("⚔️ Boss Fight ĐÃ BẮT ĐẦU! Tường chắn đã đóng.");
-        }
+        StartCoroutine(StartBossRoutine());
     }
 
-    // Hàm này được Boss gọi khi nó bị tiêu diệt
+    private IEnumerator StartBossRoutine()
+    {
+        yield return null;
+
+        // Đóng lối vào và ra
+        if (entryBarrierCollider != null) entryBarrierCollider.enabled = true;
+        if (exitBarrierCollider != null) exitBarrierCollider.enabled = true;
+
+        // Giới hạn camera chỉ trong phòng boss
+        if (cameraConfiner != null && bossRoomConfiner != null)
+        {
+            cameraConfiner.m_BoundingShape2D = bossRoomConfiner;
+            cameraConfiner.InvalidateCache();
+        }
+
+        Debug.Log("⚔️ BOSS FIGHT BẮT ĐẦU!");
+    }
+
+    // --- Khi Boss chết ---
     public void BossDied()
     {
-        // 4. Logic Mở Tường Lần 3 (Boss chết)
-        if (isBossActive)
+        if (!isBossActive) return;
+
+        isBossActive = false;
+        bossDefeated = true;
+
+        StartCoroutine(BossDefeatedRoutine());
+    }
+
+    private IEnumerator BossDefeatedRoutine()
+    {
+        yield return null;
+
+        // Mở lại tường và mở rộng camera
+        if (entryBarrierCollider != null) entryBarrierCollider.enabled = false;
+        if (exitBarrierCollider != null) exitBarrierCollider.enabled = false;
+
+        if (cameraConfiner != null && combinedConfiner != null)
         {
-            isBossActive = false;
-            bossDefeated = true;
-
-            // Vô hiệu hóa TẤT CẢ tường chắn vĩnh viễn
-            if (entryBarrierCollider != null)
-            {
-                entryBarrierCollider.enabled = false;
-            }
-            if (exitBarrierCollider != null)
-            {
-                exitBarrierCollider.enabled = false;
-            }
-
-            Debug.Log("🏆 Boss đã bị tiêu diệt! Tất cả tường chắn đã gỡ bỏ.");
+            cameraConfiner.m_BoundingShape2D = combinedConfiner;
+            cameraConfiner.InvalidateCache();
         }
+
+        Debug.Log("🏆 Boss đã bị tiêu diệt! Tường đã gỡ bỏ và camera mở rộng.");
     }
 }

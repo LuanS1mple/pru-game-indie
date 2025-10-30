@@ -60,18 +60,14 @@ public class BaseStats : MonoBehaviour
     {
         if (currentHP > 0) currentHP = 0;
         Debug.Log($"{entityName} đã chết!");
-
-        // ⭐ SỬA: Gọi animation Dead
-        if (playerMovement != null) // Nếu là Player
+        if (playerMovement != null)
         {
             playerMovement.HandleDeath();
         }
         else if (anim != null) // Nếu là Enemy
         {
-            // Dùng tên trigger "Dead" (chữ hoa) như EnemyPathFollower đang dùng
             anim.SetTrigger("Dead");
-            // Enemy nên có logic dừng riêng trong script của nó (EnemyPathFollower.Die())
-            // Destroy(gameObject, 2.5f); // Ví dụ
+    
         }
     }
 
