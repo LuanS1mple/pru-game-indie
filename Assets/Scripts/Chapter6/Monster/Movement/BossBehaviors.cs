@@ -12,6 +12,7 @@ public class BossBehaviors : MonoBehaviour
     public BossStat bossStat;
 
     [Header("Settings")]
+    public float detectionRange = 10f; // 👈 thêm khoảng phát hiện
     public float attackRange = 5f;
     public float attackCooldown = 1f;
     public float castCooldown = 5f;
@@ -39,15 +40,26 @@ public class BossBehaviors : MonoBehaviour
 
         float distance = Vector2.Distance(transform.position, target.transform.position);
 
-        aiPath.destination = target.transform.position;
+        // 👇 Chỉ di chuyển khi target nằm trong khoảng phát hiện
+        if (distance <= detectionRange)
+        {
+            aiPath.destination = target.transform.position;
+            aiPath.canMove = true;
+            IsWalk = true;
+            UpdateAnimator();
 
-        IsWalk = true;
-        UpdateAnimator();
-
-        if (distance <= attackRange)
-            TryAttack();
+            if (distance <= attackRange)
+                TryAttack();
+            else
+                TryCast();
+        }
         else
-            TryCast();
+        {
+            // 👇 target quá xa, dừng lại và không đi nữa
+            aiPath.canMove = false;
+            IsWalk = false;
+            UpdateAnimator();
+        }
     }
 
     void TryAttack()
