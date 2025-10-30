@@ -174,20 +174,14 @@ public class PickupItem : MonoBehaviour
 
     void Pickup()
     {
-        // ⭐ BẠN CẦN THAY THẾ DÒNG NÀY VỚI LỚP QUẢN LÝ INVENTORY CỦA RIÊNG BẠN
-        // Ví dụ: PlayerStats.Instance.ApplyPickup(type, amount);
+        if (HUDInventory5.Instance == null)
+        {
+            Debug.LogWarning("PickupItem: Chưa có HUDInventory5 trong scene!");
+            return;
+        }
 
-        // Ví dụ tạm thời: Giả sử đây là logic hồi máu
-        Debug.Log($"[{gameObject.name}] Đã nhặt item: {type} (+{amount}).");
-
-        // --- Logic cũ của bạn ---
-        // if (HUDInventory5.Instance == null)
-        // {
-        //     Debug.LogWarning("PickupItem: Chưa có HUDInventory5 trong scene!");
-        //     return;
-        // }
-        // // Giao cho HUDInventory5: tự áp dụng & hiển thị
-        // HUDInventory5.Instance.AddItem(type, amount, iconToShow);
+        // Giao cho HUDInventory5: tự áp dụng & hiển thị
+        HUDInventory5.Instance.AddItem(type, amount, iconToShow);
 
         if (sfx) AudioSource.PlayClipAtPoint(sfx, transform.position);
         if (pressFIndicator) pressFIndicator.SetActive(false);
@@ -198,10 +192,6 @@ public class PickupItem : MonoBehaviour
     {
         if (!other.CompareTag("Player")) return;
         playerInRange = true;
-
-        // ⭐ LOG THÔNG BÁO PLAYER ĐÃ VÀO PHẠM VI
-        Debug.Log($"Player đã vào phạm vi nhặt item: {gameObject.name}. Nhấn F để nhặt!");
-
         if (pressFIndicator) pressFIndicator.SetActive(true);
     }
 
@@ -209,10 +199,6 @@ public class PickupItem : MonoBehaviour
     {
         if (!other.CompareTag("Player")) return;
         playerInRange = false;
-
-        // ⭐ LOG THÔNG BÁO PLAYER ĐÃ RỜI PHẠM VI
-        Debug.Log($"Player đã rời phạm vi nhặt item: {gameObject.name}.");
-
         if (pressFIndicator) pressFIndicator.SetActive(false);
     }
 }
