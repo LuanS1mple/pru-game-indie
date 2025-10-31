@@ -2,7 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections;
 
-public class BossStats : MonoBehaviour
+public class BossStats : MonoBehaviour, EnemySta_IDamage
 {
     [SerializeField] private BossStatus bossStatus;
     [SerializeField] private bool autoPullFromBoss = true;
@@ -14,6 +14,9 @@ public class BossStats : MonoBehaviour
 
     public event Action<int, int> OnHealthChanged;
     public event Action OnBossDied;
+
+    int EnemySta_IDamage.MaxHealth => maxHealth;
+    int EnemySta_IDamage.CurrentHealth => currentHealth;
 
     public int MaxHealth => maxHealth;
     public int CurrentHealth => currentHealth;
