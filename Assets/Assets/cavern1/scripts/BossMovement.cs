@@ -19,7 +19,12 @@ public class BossMovement : MonoBehaviour
     private bool facingRight = true;
     private bool isAttacking = false;
     private bool isGrounded = true;
+    private bool isJumping = false;  // kiểm soát trạng thái nhảy
     private float nextAttackTime = 0f;
+
+    [Header("Jump Attack")]
+    public GameObject jumpAttack;   // object con có script BossGroundAOE
+    public Transform jumpPoint;     // vị trí spawn AOE (tùy chọn)
 
     void Start()
     {
@@ -105,13 +110,13 @@ public class BossMovement : MonoBehaviour
                 animator.Play("BossJump");
                 yield return new WaitForSeconds(0.3f);
                 Jump();
-                yield return new WaitUntil(() => isGrounded);
+                // Chờ Boss chạm đất (OnCollisionEnter2D sẽ kích hoạt AOE)
+                yield return new WaitUntil(() => isGrounded && !isJumping);
                 animator.Play("BossAttack");
                 yield return new WaitForSeconds(1f);
                 break;
         }
 
-        // Quay lại trạng thái Walk
         isAttacking = false;
         animator.Play("BossWalk");
     }
@@ -139,7 +144,38 @@ public class BossMovement : MonoBehaviour
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpForce);
             isGrounded = false;
+            isJumping = true;
         }
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Ground"))
+        {
+            if (!isGrounded)
+            {
+                isGrounded = true;
+
+                // 💥 Gây vùng sát thương khi chạm đất
+                if (jumpAttack != null)
+                {
+                    var aoe = jumpAttack.GetComponent<BossGroundAOE>();
+                    if (aoe != null)
+                        aoe.ActivateAOE();
+                }
+
+                Debug.Log("💥 Boss chạm đất → kích hoạt JumpAttack!");
+
+                // Reset trạng thái nhảy sau khi tiếp đất
+                StartCoroutine(ResetJumpFlag());
+            }
+        }
+    }
+
+    IEnumerator ResetJumpFlag()
+    {
+        yield return new WaitForSeconds(0.1f);
+        isJumping = false;
     }
 
     void Flip()
@@ -148,11 +184,5 @@ public class BossMovement : MonoBehaviour
         Vector3 scale = transform.localScale;
         scale.x *= -1;
         transform.localScale = scale;
-    }
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Ground"))
-            isGrounded = true;
     }
 }

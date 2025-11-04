@@ -26,7 +26,6 @@ public class BossHitBox : MonoBehaviour
     {
         canDamage = true;
         hitCollider.enabled = true;
-        Debug.Log("Boss HitBox Enabled");
     }
 
     // Gọi trong AnimationEvent khi Boss kết thúc cú chém
@@ -34,7 +33,6 @@ public class BossHitBox : MonoBehaviour
     {
         canDamage = false;
         hitCollider.enabled = false;
-        Debug.Log("Boss HitBox Disabled");
     }
 
     private void OnTriggerEnter2D(Collider2D other)
