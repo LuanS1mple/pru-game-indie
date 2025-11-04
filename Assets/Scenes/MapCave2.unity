@@ -616,6 +616,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
+--- !u!1 &150349839 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 110790525938285350, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
+  m_PrefabInstance: {fileID: 150349838}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &177565272 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4823302949899177535, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
@@ -64992,7 +64997,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 9
+  m_RootOrder: 10
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &515692084
 GameObject:
@@ -65280,7 +65285,7 @@ Transform:
   - {fileID: 515692087}
   - {fileID: 136438564}
   m_Father: {fileID: 0}
-  m_RootOrder: 11
+  m_RootOrder: 12
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!50 &707480504
 Rigidbody2D:
@@ -91744,7 +91749,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4827570469344384577, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
   m_PrefabInstance: {fileID: 150349838}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 150349839}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 579fad318cede534db4bf9065b77d392, type: 3}
@@ -91755,6 +91760,22 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 110790525938285354, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
   m_PrefabInstance: {fileID: 150349838}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1746063213
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 150349839}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 080dd03c0d8d09c4088831a08bd9f5a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentHealth: 0
+  maxHealth: 0
+  attack: 0
+  defense: 0
 --- !u!1001 &1754650541
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -91776,7 +91797,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4295742476190236561, guid: bf414b9be55d4c840887ac27ca49b801, type: 3}
       propertyPath: m_RootOrder
-      value: 12
+      value: 13
       objectReference: {fileID: 0}
     - target: {fileID: 4295742476190236561, guid: bf414b9be55d4c840887ac27ca49b801, type: 3}
       propertyPath: m_AnchorMax.x
