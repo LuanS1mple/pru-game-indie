@@ -11,7 +11,7 @@ public class KeyControll : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D collision)
     {
         // Khi va chạm với vật có tag "Chapter6-Key"
-        if (collision.CompareTag("Map1_key"))
+        if (collision.CompareTag("Chapter6-Key"))
         {
             keyCount++;
             Debug.Log("Đã nhặt chìa khóa: " + keyCount);
