@@ -35,8 +35,8 @@ TagManager:
   - PickupHint
   - Wall
   - Spike Trap
-  - 
-  - 
+  - PlayerAttack
+  - DetectionZone
   - 
   - 
   - 
