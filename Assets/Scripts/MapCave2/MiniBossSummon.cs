@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
-using Pathfinding; // 🔹 Cần import để dùng AIDestinationSetter
+using Pathfinding; // Dùng cho AIDestinationSetter
+using System.Collections;
 
 public class MiniBossSummon : MonoBehaviour
 {
@@ -43,7 +44,6 @@ public class MiniBossSummon : MonoBehaviour
 
     void TrySummon()
     {
-        // Đếm xem hiện có bao nhiêu ghost đang tồn tại
         int activeGhosts = GameObject.FindGameObjectsWithTag("Ghost").Length;
         Debug.Log($"👻 [MiniBossSummon] Đang có {activeGhosts}/{maxActiveGhosts} ghost trong scene.");
 
@@ -53,69 +53,72 @@ public class MiniBossSummon : MonoBehaviour
             return;
         }
 
-        // ✅ Xác định hướng boss đang quay
         float dir = _bossTransform.localScale.x >= 0 ? 1f : -1f;
-
-        // ✅ Tính vị trí spawn theo hướng đó
         Vector3 spawnPos = _bossTransform.position + new Vector3(summonOffset.x * dir, summonOffset.y, 0f);
 
-        // 🧭 Ghi log chi tiết vị trí spawn
         Debug.Log($"📍 [MiniBossSummon] MiniBoss pos = {_bossTransform.position}, Ghost spawn pos = {spawnPos}, dir = {dir}");
 
-        // ✅ Triệu hồi ghost
         GameObject ghost = Instantiate(ghostPrefab, spawnPos, Quaternion.identity);
-
         if (ghost == null)
         {
-            Debug.LogError("❌ [MiniBossSummon] Instantiate ghost thất bại (ghost == null)!");
+            Debug.LogError("❌ [MiniBossSummon] Instantiate ghost thất bại!");
             return;
         }
 
-        // ✅ Tag / Layer check
         if (ghost.tag != "Ghost")
         {
             ghost.tag = "Ghost";
             Debug.Log($"🔖 [MiniBossSummon] Gán tag 'Ghost' cho {ghost.name}.");
         }
 
-        Debug.Log($"✅ [MiniBossSummon] Ghost đã được tạo: {ghost.name} tại {ghost.transform.position}, Layer = {ghost.layer}");
-
-        // ✅ Quay ghost theo hướng miniboss
         if (_bossTransform.localScale.x < 0)
         {
             Vector3 scale = ghost.transform.localScale;
             scale.x *= -1;
             ghost.transform.localScale = scale;
-            Debug.Log($"↩ [MiniBossSummon] Đảo hướng ghost do boss đang quay trái (localScale.x < 0).");
+            Debug.Log($"↩ [MiniBossSummon] Đảo hướng ghost do boss quay trái.");
         }
 
-        // ✅ Kiểm tra Renderer có đang bị ẩn
-        var renderer = ghost.GetComponentInChildren<SpriteRenderer>();
-        if (renderer == null)
-            Debug.LogWarning($"⚠️ [MiniBossSummon] Ghost '{ghost.name}' không có SpriteRenderer!");
-        else if (!renderer.enabled)
-            Debug.LogWarning($"⚠️ [MiniBossSummon] Ghost '{ghost.name}' có SpriteRenderer nhưng bị tắt (enabled = false)!");
-        else
-            Debug.Log($"🟢 [MiniBossSummon] Ghost '{ghost.name}' Renderer OK, SortingLayer = {renderer.sortingLayerName}, Order = {renderer.sortingOrder}");
+        Debug.Log($"✅ [MiniBossSummon] Ghost '{ghost.name}' đã spawn tại {ghost.transform.position}.");
 
-        // ✅ Gán Player làm target cho ghost (CÁCH 1)
-        var destination = ghost.GetComponent<AIDestinationSetter>();
-        if (destination != null)
+        // Gán target sau một chút để đảm bảo Player đã tồn tại
+        StartCoroutine(AssignTargetToGhost(ghost));
+    }
+
+    IEnumerator AssignTargetToGhost(GameObject ghost)
+    {
+        // chờ một frame để đảm bảo mọi object trong scene đã load
+        yield return new WaitForSeconds(0.2f);
+
+        if (ghost == null)
         {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-            {
-                destination.target = playerObj.transform;
-                Debug.Log($"🎯 [MiniBossSummon] Gán Player ({playerObj.name}) làm target cho ghost '{ghost.name}'.");
-            }
-            else
-            {
-                Debug.LogWarning("⚠️ [MiniBossSummon] Không tìm thấy Player trong scene để gán cho ghost!");
-            }
+            Debug.LogWarning("⚠️ [MiniBossSummon] Ghost bị hủy trước khi gán target!");
+            yield break;
         }
-        else
+
+        var destination = ghost.GetComponent<AIDestinationSetter>();
+        if (destination == null)
         {
             Debug.LogWarning($"⚠️ [MiniBossSummon] Ghost '{ghost.name}' không có AIDestinationSetter!");
+            yield break;
         }
+
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj == null)
+        {
+            Debug.LogWarning("⚠️ [MiniBossSummon] Không tìm thấy Player trong scene để gán target!");
+            yield break;
+        }
+
+        // 🔹 Kiểm tra Layer để chắc chắn Player thuộc Layer "Player"
+        int playerLayer = LayerMask.NameToLayer("Player");
+        if (playerObj.layer != playerLayer)
+        {
+            Debug.LogWarning($"⚠️ [MiniBossSummon] Player có tag 'Player' nhưng không nằm trong Layer 'Player'. (Layer hiện tại: {LayerMask.LayerToName(playerObj.layer)})");
+        }
+
+        // ✅ Gán target thành công
+        destination.target = playerObj.transform;
+        Debug.Log($"🎯 [MiniBossSummon] Gán Player ({playerObj.name}) làm target cho ghost '{ghost.name}'.");
     }
 }

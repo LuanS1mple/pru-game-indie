@@ -10,8 +10,7 @@ public class MonsterSAttack : MonoBehaviour
     private float nextAttackTime;
     private bool isAttacking;
 
-    [Header("Movement Settings")]
-    public float moveSpeed = 2f;
+    [Header("Attack Range Settings")]
     public float stopDistance = 1.2f;
 
     [Header("Animator Settings")]
@@ -57,21 +56,17 @@ public class MonsterSAttack : MonoBehaviour
 
         float dist = Vector2.Distance(transform.position, player.position);
 
-        // Nếu chưa tấn công và còn khoảng cách -> di chuyển tới player
-        if (!isAttacking && dist > stopDistance)
+        // 🔹 Nếu đủ gần thì tấn công
+        if (dist <= stopDistance && !isAttacking && Time.time >= nextAttackTime)
         {
-            transform.position = Vector2.MoveTowards(transform.position, player.position, moveSpeed * Time.deltaTime);
-            SetSpeedParam(moveSpeed);
+            StartCoroutine(AttackRoutine());
+            nextAttackTime = Time.time + attackCooldown;
         }
-        else
-        {
-            SetSpeedParam(0);
 
-            if (Time.time >= nextAttackTime && !isAttacking && dist <= stopDistance)
-            {
-                StartCoroutine(AttackRoutine());
-                nextAttackTime = Time.time + attackCooldown;
-            }
+        // 🔹 Cập nhật tốc độ animation (để AIPath có thể điều khiển riêng)
+        if (animator != null)
+        {
+            animator.SetFloat(speedParam, isAttacking ? 0 : 1);
         }
     }
 
@@ -119,14 +114,10 @@ public class MonsterSAttack : MonoBehaviour
         Debug.Log($"🕹 [MonsterSAttack] SetTrigger({attackTrigger})");
         animator.SetTrigger(attackTrigger);
 
-        // Âm thanh quái tấn công
         if (audioManager != null)
             audioManager.PlaySFX(audioManager.monsterAttack);
 
-        // Bật collider sau 1 chút delay
         EnableColliderDelayed(0.15f);
-
-        // Log trạng thái sau 1 frame
         StartCoroutine(CheckAnimationStateNextFrame());
     }
 
