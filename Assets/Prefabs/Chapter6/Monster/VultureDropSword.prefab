@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 6140982541361841225}
   - component: {fileID: 4934932985175036892}
   - component: {fileID: 4934932985175036893}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: vulture-idle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -217,7 +217,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4528400052660669463}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 26.711746, y: 9.710794, z: 9.928163}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0

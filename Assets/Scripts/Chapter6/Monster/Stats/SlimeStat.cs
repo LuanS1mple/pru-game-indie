@@ -30,6 +30,7 @@ public class SlimeStat : MonoBehaviour
     // Gọi khi bị tấn công
     private void OnTriggerEnter2D(Collider2D collision)
     {
+        Debug.LogWarning(collision.gameObject.name);
         if (collision.CompareTag("TestAttack") && !IsDeath)
         {
             TakeDamage(10);
