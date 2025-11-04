@@ -19,7 +19,31 @@ public class MonsterAttack : MonoBehaviour
             AttackPlayer(collision);
         }
     }
-
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        Debug.LogWarning("OK");
+            // chỉ xét nếu collider thuộc playerLayer
+        if (((1 << collision.gameObject.layer) & playerLayer) == 0) return;
+        if (Time.time - lastAttackTime >= attackCooldown)
+        {
+            lastAttackTime = Time.time;
+            AttackPlayerNonTrigger(collision);
+        }
+    }
+    private void AttackPlayerNonTrigger(Collision2D collision)
+    {
+        Debug.LogWarning("OK");
+        BaseStats playerStats = collision.gameObject.GetComponent<BaseStats>();
+        if (playerStats != null)
+        {
+            playerStats.TakeDamage(10);
+            Debug.LogWarning("Attack");
+        }
+        else
+        {
+            Debug.LogWarning("Không tìm thấy BaseStats trên Player!");
+        }
+    }
 
     private void AttackPlayer(Collider2D collision)
     {
