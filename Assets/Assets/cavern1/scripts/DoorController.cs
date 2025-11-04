@@ -57,30 +57,32 @@ public class DoorController : MonoBehaviour
             Debug.LogWarning("targetScene chưa được gán trong DoorController!");
             return;
         }
-
-        // ✅ Đánh dấu là đang load
         isLoading = true;
 
-        // ✅ Thay vì load ngay, gọi Coroutine để chờ
         StartCoroutine(LoadSceneAfterDelay(targetScene));
     }
 
-    // ✅ Đây là Coroutine thực hiện việc chờ và load scene
     private IEnumerator LoadSceneAfterDelay(string sceneName)
     {
         Debug.Log($"Player chạm cửa. Bắt đầu chờ 3 giây trước khi tải {sceneName}...");
 
-        // (Tùy chọn: Bạn có thể bắt đầu hiệu ứng mờ dần màn hình (fade-out) tại đây)
-
-        // ✅ Chờ 3 giây (sử dụng Realtime để không bị ảnh hưởng bởi Time.timeScale)
+        // Chờ 3 giây (sử dụng Realtime để không bị ảnh hưởng bởi Time.timeScale)
         yield return new WaitForSecondsRealtime(3f);
 
-        Debug.Log("Đã chờ 3 giây. Bắt đầu tải scene (bất đồng bộ)...");
+        Debug.Log("Đã chờ 3 giây. Bắt đầu tải scene");
 
-        // ✅ Sử dụng LoadSceneAsync để không bị giật lag
-        SceneManager.LoadSceneAsync(sceneName);
+        var player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            var stats = player.GetComponent<PlayerStats>();
+            if (stats != null && PlayerManager.Instance != null)
+            {
+                PlayerManager.Instance.SaveFrom(stats);
+                Debug.Log("Đã lưu trạng thái player trước khi chuyển scene");
+            }
 
-        // Bạn không cần 'yield return' hay 'while' ở đây
-        // vì chúng ta chỉ cần ra lệnh cho nó tải, và nó sẽ tự động kích hoạt khi xong.
+            // Sử dụng LoadSceneAsync để không bị giật lag
+            SceneManager.LoadSceneAsync(sceneName);
+        }
     }
 }

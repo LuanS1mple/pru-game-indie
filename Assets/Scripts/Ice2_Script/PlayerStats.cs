@@ -90,7 +90,6 @@
 //        PushHudToBase();
 //        RaiseHealthChanged();
 //    }
-
 //    // Khi HUD bị trừ máu (ví dụ bạn chủ động gọi từ đâu đó)
 //    public void TakeDamage(int dmg)
 //    {
@@ -234,6 +233,16 @@ public class PlayerStats : MonoBehaviour
 
     void Start()
     {
+        if (PlayerManager.Instance != null && PlayerManager.Instance.maxHealth > 0)
+        {
+            PlayerManager.Instance.LoadTo(this);
+            Debug.Log("[PlayerStats] Loaded saved stats from PlayerManager");
+        }
+        else
+        {
+            Debug.Log("[PlayerStats] No saved data found, using default stats");
+        }
+
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
         if (autoPullFromBase && baseStats)
             StartCoroutine(CoPullFromBase());
@@ -390,5 +399,17 @@ public class PlayerStats : MonoBehaviour
         _lastPushedMax = maxHealth;
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
     }
-}
 
+    public void SetStatsFromManager(int cur, int max, int atk, int def)
+    {
+        maxHealth = max;
+        currentHealth = Mathf.Clamp(cur, 0, maxHealth);
+        attack = atk;
+        defense = def;
+
+        PushHudToBase();
+        RaiseHealthChanged();
+
+        Debug.Log($"[PlayerStats] Stats loaded from manager: HP {currentHealth}/{maxHealth}, ATK {attack}, DEF {defense}");
+    }
+}
