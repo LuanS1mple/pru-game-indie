@@ -52,6 +52,8 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
     public float deathAnimDuration = 1.5f; // Thời gian đợi animation chết chạy xong (Thay đổi tùy theo animation của bạn)
     private Camera mainCamera;
     private Cinemachine.CinemachineBrain cinemachineBrain;
+    [SerializeField] private WindBlastSkillController windHud;
+    private bool isCastingCross = false;
     private void Awake()
     {
         audioManager = GameObject.FindGameObjectWithTag("Audio")?.GetComponent<AudioManager>(); // Thêm ? để tránh lỗi nếu không tìm thấy
@@ -74,6 +76,8 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
         {
             cinemachineBrain = mainCamera.GetComponent<Cinemachine.CinemachineBrain>();
         }
+        if (!windHud) windHud = FindObjectOfType<WindBlastSkillController>();
+
     }
 
     void Start()
@@ -120,46 +124,171 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
             StartCoroutine(CastCrossBlastCoroutine());
         }
     }
+    //IEnumerator CastCrossBlastCoroutine()
+    //{
+    //    // 1. KIỂM TRA COOLDOWN VÀ TRẠNG THÁI
+    //    if (Time.time < nextCrossBlastTime || isRolling || (playerStats != null && playerStats.isDead))
+    //    {
+    //        yield break;
+    //    }
+
+    //    // ⭐ DÙNG CÁC BIẾN MỚI ⭐
+    //    if (crossBlastPrefab == null || crossSpawnPoint == null)
+    //    {
+    //        Debug.LogError("Thiếu Prefab Kỹ năng CrossBlast hoặc Spawn Point!");
+    //        yield break;
+    //    }
+
+    //    // 2. CẬP NHẬT THỜI GIAN HỒI CHIÊU
+    //    nextCrossBlastTime = Time.time + crossBlastCooldown;
+
+    //    // 3. Kích hoạt Animation Cast của Player
+    //    if (animator)
+    //    {
+    //        animator.SetTrigger("cross");
+    //    }
+
+    //    // 4. TẠM DỪNG SCRIPT TẠI ĐÂY TRONG 0.2 GIÂY
+    //    yield return new WaitForSeconds(0.2f);
+
+    //    // 5. Xác định hướng quay (Scale X)
+    //    float scaleX = facingRight ? 1f : -1f;
+
+    //    // 6. Sinh ra Prefab tại vị trí đã thiết lập
+    //    // ⭐ DÙNG crossBlastPrefab và crossSpawnPoint ⭐
+    //    GameObject skillInstance = Instantiate(
+    //        crossBlastPrefab,
+    //        crossSpawnPoint.position,
+    //        Quaternion.identity
+    //    );
+
+    //    // 7. Truy cập script CrossBlast và khởi tạo
+    //    CrossBlast blastScript = skillInstance.GetComponent<CrossBlast>();
+    //    if (blastScript != null)
+    //    {
+    //        blastScript.Initialize(scaleX);
+    //    }
+    //    else
+    //    {
+    //        Debug.LogError("Prefab không có script CrossBlast.cs!");
+    //    }
+    //}
+
+
+    //IEnumerator CastWindBlastCoroutine()
+    //{
+    //    // 1. KIỂM TRA COOLDOWN VÀ TRẠNG THÁI (Giữ nguyên)
+    //    if (Time.time < nextCrossBlastTime || isRolling || (playerStats != null && playerStats.isDead) || !isGrounded) // ⭐ THÊM !isGrounded ⭐
+    //    {
+    //        if (!isGrounded)
+    //        {
+    //            Debug.Log("Không thể Cast CrossBlast khi đang trên không!"); // Thông báo tùy chọn
+    //        }
+    //        yield break;
+    //    }
+
+    //    if (windBlastPrefab == null || windSpawnPoint == null)
+    //    {
+    //        Debug.LogError("Thiếu Prefab Kỹ năng Gió hoặc Spawn Point!");
+    //        yield break; // Thoát Coroutine
+    //    }
+
+    //    // 2. CẬP NHẬT THỜI GIAN HỒI CHIÊU NGAY LẬP TỨC
+    //    nextWindBlastTime = Time.time + windBlastCooldown;
+
+    //    // 3. Kích hoạt Animation Cast của Player NGAY LẬP TỨC
+    //    if (animator)
+    //    {
+    //        animator.SetTrigger("wind");
+    //    }
+
+    //    // ⭐ 4. TẠM DỪNG SCRIPT TẠI ĐÂY TRONG 0.5 GIÂY ⭐
+    //    yield return new WaitForSeconds(0.25f);
+
+    //    // ----------- LOGIC SINH PREFAB SAU KHI DỪNG -----------
+
+    //    // 5. Xác định hướng quay (Scale X)
+    //    float scaleX = facingRight ? 1f : -1f;
+
+    //    // 6. Sinh ra Prefab tại vị trí đã thiết lập
+    //    GameObject skillInstance = Instantiate(
+    //        windBlastPrefab,
+    //        windSpawnPoint.position,
+    //        Quaternion.identity
+    //    );
+
+    //    // 7. Truy cập script WindBlast và khởi tạo
+    //    WindBlast blastScript = skillInstance.GetComponent<WindBlast>();
+    //    if (blastScript != null)
+    //    {
+    //        blastScript.Initialize(scaleX);
+    //    }
+    //}
+
+    //// ⭐ HÀM MỚI: Sẽ được gọi bởi Animation Event
+    //// QUAN TRỌNG: Hàm phải là public để Animation Event truy cập được
+    //public void SpawnWindBlastEffect()
+    //{
+    //    // 1. Xác định hướng quay (Scale X)
+    //    float scaleX = facingRight ? 1f : -1f;
+
+    //    // 2. Sinh ra Prefab tại vị trí đã thiết lập
+    //    GameObject skillInstance = Instantiate(
+    //        windBlastPrefab,
+    //        windSpawnPoint.position,
+    //        Quaternion.identity
+    //    );
+
+    //    // 3. Truy cập script WindBlast và khởi tạo
+    //    WindBlast blastScript = skillInstance.GetComponent<WindBlast>();
+    //    if (blastScript != null)
+    //    {
+    //        blastScript.Initialize(scaleX);
+    //    }
+
+    //    // Tùy chọn: Thêm logic để Player thoát khỏi trạng thái "CastWind"
+    //}
     IEnumerator CastCrossBlastCoroutine()
     {
-        // 1. KIỂM TRA COOLDOWN VÀ TRẠNG THÁI
-        if (Time.time < nextCrossBlastTime || isRolling || (playerStats != null && playerStats.isDead))
+        // CHẶN nếu đang cast, đang lăn, đang chết, đang trên không, hoặc đang hồi chiêu
+        if (isCastingCross
+            || isRolling
+            || (playerStats != null && playerStats.isDead)
+            || !isGrounded
+            || Time.time < nextCrossBlastTime)
         {
             yield break;
         }
 
-        // ⭐ DÙNG CÁC BIẾN MỚI ⭐
+        // Kiểm tra prefab / spawn
         if (crossBlastPrefab == null || crossSpawnPoint == null)
         {
             Debug.LogError("Thiếu Prefab Kỹ năng CrossBlast hoặc Spawn Point!");
             yield break;
         }
 
-        // 2. CẬP NHẬT THỜI GIAN HỒI CHIÊU
+        // Đặt cờ và BẮT ĐẦU HỒI CHIÊU NGAY LẬP TỨC (chốt chặn chống spam)
+        isCastingCross = true;
         nextCrossBlastTime = Time.time + crossBlastCooldown;
 
-        // 3. Kích hoạt Animation Cast của Player
-        if (animator)
-        {
-            animator.SetTrigger("cross");
-        }
+        // Kích hoạt animation
+        if (animator) animator.SetTrigger("cross");
 
-        // 4. TẠM DỪNG SCRIPT TẠI ĐÂY TRONG 0.2 GIÂY
-        yield return new WaitForSeconds(0.2f);
+        // Đợi đúng “cửa sổ” xuất chiêu (khớp timing animation)
+        yield return new WaitForSeconds(0.20f);
 
-        // 5. Xác định hướng quay (Scale X)
+        // Xác định hướng scale theo mặt đang nhìn
         float scaleX = facingRight ? 1f : -1f;
 
-        // 6. Sinh ra Prefab tại vị trí đã thiết lập
-        // ⭐ DÙNG crossBlastPrefab và crossSpawnPoint ⭐
+        // Sinh projectile
         GameObject skillInstance = Instantiate(
             crossBlastPrefab,
             crossSpawnPoint.position,
             Quaternion.identity
         );
 
-        // 7. Truy cập script CrossBlast và khởi tạo
-        CrossBlast blastScript = skillInstance.GetComponent<CrossBlast>();
+        // Khởi tạo projectile
+        var blastScript = skillInstance.GetComponent<CrossBlast>();
         if (blastScript != null)
         {
             blastScript.Initialize(scaleX);
@@ -168,82 +297,53 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
         {
             Debug.LogError("Prefab không có script CrossBlast.cs!");
         }
-    }
 
+        // Kết thúc cast
+        isCastingCross = false;
+    }
 
     IEnumerator CastWindBlastCoroutine()
     {
-        // 1. KIỂM TRA COOLDOWN VÀ TRẠNG THÁI (Giữ nguyên)
-        if (Time.time < nextCrossBlastTime || isRolling || (playerStats != null && playerStats.isDead) || !isGrounded) // ⭐ THÊM !isGrounded ⭐
+        // 1) ĐÚNG cooldown của WindBlast (đừng nhầm với nextCrossBlastTime)
+        if (Time.time < nextWindBlastTime || isRolling || (playerStats != null && playerStats.isDead) || !isGrounded)
         {
             if (!isGrounded)
-            {
-                Debug.Log("Không thể Cast CrossBlast khi đang trên không!"); // Thông báo tùy chọn
-            }
+                Debug.Log("Không thể Cast WindBlast khi đang trên không!");
             yield break;
         }
 
+        // 2) Kiểm tra tham chiếu prefab/point
         if (windBlastPrefab == null || windSpawnPoint == null)
         {
-            Debug.LogError("Thiếu Prefab Kỹ năng Gió hoặc Spawn Point!");
-            yield break; // Thoát Coroutine
+            Debug.LogError("Thiếu Prefab WindBlast hoặc Wind Spawn Point!");
+            yield break;
         }
 
-        // 2. CẬP NHẬT THỜI GIAN HỒI CHIÊU NGAY LẬP TỨC
+        // 3) CẬP NHẬT THỜI GIAN HỒI CHIÊU NGAY LẬP TỨC
         nextWindBlastTime = Time.time + windBlastCooldown;
 
-        // 3. Kích hoạt Animation Cast của Player NGAY LẬP TỨC
-        if (animator)
-        {
-            animator.SetTrigger("wind");
-        }
+        // 3b) Báo cho HUD bắt đầu đếm cooldown (HUD-only controller)
+        if (windHud) windHud.NotifyCast(windBlastCooldown);
 
-        // ⭐ 4. TẠM DỪNG SCRIPT TẠI ĐÂY TRONG 0.5 GIÂY ⭐
+        // 4) Gọi animation cast ngay
+        if (animator) animator.SetTrigger("wind");
+
+        // 5) Chờ một nhịp cho khớp timing animation (tuỳ clip của bạn)
         yield return new WaitForSeconds(0.25f);
 
-        // ----------- LOGIC SINH PREFAB SAU KHI DỪNG -----------
-
-        // 5. Xác định hướng quay (Scale X)
+        // 6) Spawn hiệu ứng / hitbox
         float scaleX = facingRight ? 1f : -1f;
 
-        // 6. Sinh ra Prefab tại vị trí đã thiết lập
         GameObject skillInstance = Instantiate(
             windBlastPrefab,
             windSpawnPoint.position,
             Quaternion.identity
         );
 
-        // 7. Truy cập script WindBlast và khởi tạo
         WindBlast blastScript = skillInstance.GetComponent<WindBlast>();
-        if (blastScript != null)
-        {
-            blastScript.Initialize(scaleX);
-        }
+        if (blastScript) blastScript.Initialize(scaleX);
     }
 
-    // ⭐ HÀM MỚI: Sẽ được gọi bởi Animation Event
-    // QUAN TRỌNG: Hàm phải là public để Animation Event truy cập được
-    public void SpawnWindBlastEffect()
-    {
-        // 1. Xác định hướng quay (Scale X)
-        float scaleX = facingRight ? 1f : -1f;
-
-        // 2. Sinh ra Prefab tại vị trí đã thiết lập
-        GameObject skillInstance = Instantiate(
-            windBlastPrefab,
-            windSpawnPoint.position,
-            Quaternion.identity
-        );
-
-        // 3. Truy cập script WindBlast và khởi tạo
-        WindBlast blastScript = skillInstance.GetComponent<WindBlast>();
-        if (blastScript != null)
-        {
-            blastScript.Initialize(scaleX);
-        }
-
-        // Tùy chọn: Thêm logic để Player thoát khỏi trạng thái "CastWind"
-    }
     void HandleMovement(float move)
     {
         rb.velocity = new Vector2(move * speed, rb.velocity.y);
