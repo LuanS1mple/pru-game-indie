@@ -6,9 +6,9 @@ public class FlyingEyeBehaviors : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private AIPath aiPath;
-    [Tooltip("Nếu để trống sẽ tự Find bằng tag 'Player'")]
     [SerializeField] private GameObject Target;
     private Animator animator;
+    private SpriteRenderer spriteRenderer; // ✅ only flip sprite, not object
     private BaseStats playerStats;
 
     [Header("Stats")]
@@ -26,14 +26,16 @@ public class FlyingEyeBehaviors : MonoBehaviour
     private float lastAttackTime;
     private bool isAttackingNow = false;
 
-    private bool facingRight = true;
+    // ✅ Pixel enemies dạng này mặc định nhìn TRÁI
+    private bool facingRight = false;
 
-    // implement interface
     public int GetCurrentHealth() => currentHealth;
 
     void Start()
     {
         animator = GetComponent<Animator>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>(); // ✅ get sprite
+
         aiPath = aiPath ?? GetComponent<AIPath>();
 
         if (aiPath != null)
@@ -42,18 +44,11 @@ public class FlyingEyeBehaviors : MonoBehaviour
         if (Target == null)
             Target = GameObject.FindGameObjectWithTag("Player");
 
-        if (Target == null)
-        {
-            Debug.LogError("[FlyingEye] ❌ Không tìm thấy GameObject có tag 'Player'.");
-        }
-        else
+        if (Target != null)
         {
             playerStats = Target.GetComponent<BaseStats>() ??
                           Target.GetComponentInChildren<BaseStats>() ??
                           Target.GetComponentInParent<BaseStats>();
-
-            if (playerStats == null)
-                Debug.LogWarning($"[FlyingEye] ⚠️ Không tìm thấy BaseStats trên '{Target.name}'!");
         }
 
         currentHealth = maxHealth;
@@ -67,7 +62,7 @@ public class FlyingEyeBehaviors : MonoBehaviour
         float distance = Vector2.Distance(transform.position, Target.transform.position);
         float timeSinceLastAttack = Time.time - lastAttackTime;
 
-        // --- Di chuyển & tấn công ---
+        // Movement logic
         if (distance <= DetectRange && distance > AttackRange)
         {
             aiPath.canMove = true;
@@ -88,47 +83,45 @@ public class FlyingEyeBehaviors : MonoBehaviour
             aiPath.canMove = false;
         }
 
-        // --- Flip hướng dựa trên vị trí Player ---
-        if (Target != null)
-        {
-            float dirToTarget = Target.transform.position.x - transform.position.x;
-            if (dirToTarget > 0 && !facingRight)
-                Flip();
-            else if (dirToTarget < 0 && facingRight)
-                Flip();
-        }
+        HandleFlip();
+    }
+
+    // ✅ Flip đúng hướng dựa theo SpriteRenderer
+    private void HandleFlip()
+    {
+        float dirToTarget = Target.transform.position.x - transform.position.x;
+
+        if (dirToTarget > 0 && !facingRight)
+            Flip();
+        else if (dirToTarget < 0 && facingRight)
+            Flip();
     }
 
     private void Flip()
     {
         facingRight = !facingRight;
-        Vector3 scale = transform.localScale;
-        scale.x *= -1;
-        transform.localScale = scale;
+
+        // ✅ Chỉ lật sprite, không lật object (AIPath sẽ bị lỗi)
+        if (spriteRenderer != null)
+            spriteRenderer.flipX = !spriteRenderer.flipX;
     }
 
     IEnumerator AttackRoutine()
     {
-        if (isDead) yield break; // ✅ Enemy chết thì không tấn công
+        if (isDead) yield break;
         isAttackingNow = true;
 
-        if (animator != null)
-            animator.SetTrigger("attack");
+        animator?.SetTrigger("attack");
 
         yield return new WaitForSeconds(0.4f);
 
-        // ✅ Kiểm tra lại trước khi gây damage
         if (!isDead && Target != null && playerStats != null)
         {
             float distance = Vector2.Distance(transform.position, Target.transform.position);
             if (distance <= AttackRange)
-            {
                 playerStats.TakeDamage(damage);
-                Debug.Log($"🩸 Player bị FlyingEye gây {damage} damage!");
-            }
         }
 
-        // ✅ Chờ cooldown nhưng vẫn kiểm tra sống/chết
         float timer = 0f;
         while (timer < AttackCooldown)
         {
@@ -148,21 +141,19 @@ public class FlyingEyeBehaviors : MonoBehaviour
         if (collision.CompareTag("TestAttack"))
         {
             BaseStats attacker = collision.GetComponentInParent<BaseStats>();
-            int damageTaken = attacker != null ? Mathf.RoundToInt(attacker.attack) : 5;
-            TakeDamage(damageTaken);
-            Debug.Log($"FlyingEye nhận {damageTaken} damage từ {attacker?.name ?? "Unknown"}");
+            int dmg = attacker != null ? Mathf.RoundToInt(attacker.attack) : 5;
+            TakeDamage(dmg);
         }
     }
 
-    public void TakeDamage(int damage)
+    public void TakeDamage(int dmg)
     {
         if (isDead) return;
 
-        currentHealth -= damage;
-        if (currentHealth < 0) currentHealth = 0;
+        currentHealth -= dmg;
+        currentHealth = Mathf.Max(currentHealth, 0);
 
         StartCoroutine(CoTakeHit());
-        Debug.Log($"FlyingEye bị đánh! Mất {damage} HP. Còn {currentHealth}/{maxHealth}");
 
         if (currentHealth <= 0)
             Die();
@@ -170,7 +161,7 @@ public class FlyingEyeBehaviors : MonoBehaviour
 
     private IEnumerator CoTakeHit()
     {
-        if (animator != null) animator.SetTrigger("takehit");
+        animator?.SetTrigger("takehit");
         aiPath.canMove = false;
         yield return new WaitForSeconds(0.4f);
         aiPath.canMove = true;
@@ -181,62 +172,39 @@ public class FlyingEyeBehaviors : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        // ✅ Dừng toàn bộ coroutine và logic tấn công
         StopAllCoroutines();
         aiPath.canMove = false;
 
-        // ✅ Tắt collider của toàn bộ object và con
         foreach (var col in GetComponentsInChildren<Collider2D>())
             col.enabled = false;
 
-        // ✅ Tắt rigidbody vật lý nếu có
-        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        var rb = GetComponent<Rigidbody2D>();
         if (rb != null)
         {
             rb.velocity = Vector2.zero;
             rb.isKinematic = true;
         }
 
-        // ✅ Ẩn thanh máu nếu có (EnemyHealthBarUI nằm con)
-        var healthBar = GetComponentInChildren<EnemyHealthBarUI>();
-        if (healthBar != null)
-            healthBar.gameObject.SetActive(false);
+        var hb = GetComponentInChildren<EnemyHealthBarUI>();
+        if (hb != null) hb.gameObject.SetActive(false);
 
-        if (animator != null)
-            animator.SetTrigger("die");
-
+        animator?.SetTrigger("die");
         StartCoroutine(DestroyAfterDeath());
     }
 
     private IEnumerator DestroyAfterDeath()
     {
-        float deathAnimLength = 1f;
-        if (animator != null && animator.runtimeAnimatorController != null)
+        float delay = 1f;
+        if (animator != null)
         {
             foreach (var clip in animator.runtimeAnimatorController.animationClips)
-            {
-                if (clip.name.ToLower().Contains("death"))
-                {
-                    deathAnimLength = clip.length;
-                    break;
-                }
-            }
+                if (clip.name.ToLower().Contains("death")) delay = clip.length;
         }
 
-        yield return new WaitForSeconds(deathAnimLength);
+        yield return new WaitForSeconds(delay);
 
-        // 🔥 Thay dòng này:
-        // Destroy(gameObject);
-
-        // ✅ Thành một trong các dòng sau, tùy cấu trúc prefab:
-
-        // 👉 Nếu FlyingEyeBehaviors nằm trong child của một enemy root object:
         Destroy(transform.root.gameObject);
-
-        // Hoặc nếu chỉ muốn hủy cha trực tiếp:
-        // Destroy(transform.parent.gameObject);
     }
-
 
     private void OnDrawGizmosSelected()
     {
