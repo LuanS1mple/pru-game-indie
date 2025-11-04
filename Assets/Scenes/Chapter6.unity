@@ -17632,6 +17632,7 @@ MonoBehaviour:
   deathZoomSize: 2.5
   zoomSpeed: 2
   deathAnimDuration: 1.5
+  windHud: {fileID: 0}
 --- !u!212 &726147354106538548
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -18034,7 +18035,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entityName: player
   maxHP: 200
-  currentHP: 200
+  currentHP: 1000
   attack: 15
   defense: 5
   isInvulnerable: 0

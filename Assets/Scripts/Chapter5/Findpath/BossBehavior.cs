@@ -1,10 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class BossBehavior : BaseStats
 {
-    // ... (Giữ nguyên các biến References, Animator, Rigidbody) ...
+    [Header("Events")]
+    public UnityEvent OnBossDied;
+
     [Header("References")]
     public WaypointGraph graph;
     public Transform target; // Vẫn dùng target gán từ ngoài
