@@ -13,6 +13,7 @@ TagManager:
   - Hint
   - Map1_key
   - Trap
+  - Ghost
   layers:
   - Default
   - TransparentFX
@@ -34,8 +35,8 @@ TagManager:
   - PickupHint
   - Wall
   - Spike Trap
-  - 
-  - 
+  - PlayerAttack
+  - DetectionZone
   - 
   - 
   - 
