@@ -45,7 +45,12 @@ public class PauseGameUI : MonoBehaviour
     public void QuitGame()
     {
         Time.timeScale = 1f;
-        SceneManager.LoadScene("IntroScene");              // Chỉ hoạt động khi build game
+        SceneManager.LoadScene("IntroScene");
+        Application.Quit(); // Thoát khi build
+
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false; // Thoát trong Unity Editor
+#endif// Chỉ hoạt động khi build game
     }
 
     public void GoToMainMenu()
