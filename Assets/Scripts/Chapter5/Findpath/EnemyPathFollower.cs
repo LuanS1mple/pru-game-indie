@@ -48,6 +48,8 @@ public class EnemyPathFollower : BaseStats
     private int patrolDirection = 1;
 
 
+    private BossRoomManager manager;
+
     // ... (Giữ nguyên Awake, InitializePatrolCenter, FindFallbackPatrolWaypoint) ...
     protected override void Awake()
     {
@@ -57,6 +59,16 @@ public class EnemyPathFollower : BaseStats
         InitializePatrolCenter((Vector2)transform.position);
         if (attackCollider != null)
             attackCollider.enabled = false;
+    }
+
+    void Start()
+    {
+        manager = FindObjectOfType<BossRoomManager>();
+        if (manager != null)
+        {
+            manager.enemiesRemaining++;
+            Debug.Log($"[{entityName}] đã đăng ký với Boss Room Manager. Tổng quái hiện tại: {manager.enemiesRemaining}");
+        }
     }
     void InitializePatrolCenter(Vector2 position)
     {
@@ -261,7 +273,7 @@ public class EnemyPathFollower : BaseStats
     }
     private void OnTriggerEnter2D(Collider2D collision) { TryDealDamage(collision); }
     private void OnTriggerStay2D(Collider2D collision) { TryDealDamage(collision); }
-    public void HandleAnimation_TriggerDie() { Die(); }
+    
     public void HandleAnimation_TriggerTakeDamage(float damage) { TakeDamage(damage); }
 
 
@@ -365,9 +377,23 @@ public class EnemyPathFollower : BaseStats
         if (isDead)
             Die();
     }
+
+    private bool managerNotified = false; 
+
     protected override void Die()
     {
         base.Die();
+        if (manager != null && !managerNotified)
+        {
+            manager.EnemyDied();
+            managerNotified = true; // Đánh dấu đã thông báo
+            Debug.Log($"✅ Manager ĐÃ được thông báo thành công!");
+        }
+        else if (managerNotified)
+        {
+            Debug.LogWarning($"⚠️ Hàm Die được gọi lần nữa, nhưng đã bảo vệ Manager!");
+        }
+
         if (anim) anim.SetTrigger("Dead");
         StopAllCoroutines();
         Destroy(gameObject, 2.5f);
