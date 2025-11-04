@@ -858,7 +858,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5525905990293281082, guid: 6929030b12776e44c8041e5e3446cb3e, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5525905990293281086, guid: 6929030b12776e44c8041e5e3446cb3e, type: 3}
       propertyPath: m_Pivot.x
@@ -1445,7 +1445,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c52beec62113fdb49af8ecc6feea7bc0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  damage: 2
+  damage: 3
   knockbackToPlayer: 6
   stunToPlayer: 0.15
   hitCooldown: 0.5
@@ -35952,7 +35952,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1546820464}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -12.6, y: 1.45, z: -10}
+  m_LocalPosition: {x: -12.9, y: 1.25, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -36263,11 +36263,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 110790525938285354, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -12.6
+      value: -12.9
       objectReference: {fileID: 0}
     - target: {fileID: 110790525938285354, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.2
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 110790525938285354, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
       propertyPath: m_LocalPosition.z
@@ -36300,6 +36300,10 @@ PrefabInstance:
     - target: {fileID: 110790525938285354, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 110790525938285359, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
+      propertyPath: trapDamageAmount
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 110790525938285361, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
       propertyPath: m_CollisionDetection
@@ -40139,6 +40143,10 @@ PrefabInstance:
     - target: {fileID: 23178592, guid: b828cfe79f0898544aea2ea28b2d6555, type: 3}
       propertyPath: specialDamage
       value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 23178592, guid: b828cfe79f0898544aea2ea28b2d6555, type: 3}
+      propertyPath: AttackCooldown
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 23178592, guid: b828cfe79f0898544aea2ea28b2d6555, type: 3}
       propertyPath: OnBossDied.m_PersistentCalls.m_Calls.Array.size
