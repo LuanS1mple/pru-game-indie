@@ -94000,7 +94000,7 @@ PrefabInstance:
     - target: {fileID: 1958748110, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
       propertyPath: playerStats
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 1746063203}
     - target: {fileID: 1958748110, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
       propertyPath: slotIcons.Array.data[0]
       value: 
@@ -94237,7 +94237,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1227084843087367822, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
 --- !u!114 &1852075584 stripped
 MonoBehaviour:
