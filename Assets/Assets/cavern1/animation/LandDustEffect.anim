@@ -6,7 +6,7 @@ AnimationClip:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: WIndFX_Anim
+  m_Name: LandDustEffect
   serializedVersion: 6
   m_Legacy: 0
   m_Compressed: 0
@@ -28,10 +28,8 @@ AnimationClip:
     - time: 0.25
       value: {fileID: 21300000, guid: de9714f3b21127e4196ebe9bd2163252, type: 3}
     - time: 0.33333334
-      value: {fileID: 21300000, guid: de9714f3b21127e4196ebe9bd2163252, type: 3}
-    - time: 0.41666666
       value: {fileID: 21300000, guid: 8a8fbecbb5021704b98e2180334900cb, type: 3}
-    - time: 0.5
+    - time: 0.41666666
       value: {fileID: 21300000, guid: 96f5eb2ddc8448f47972a4894ee8f3be, type: 3}
     attribute: m_Sprite
     path: 
@@ -56,7 +54,6 @@ AnimationClip:
     - {fileID: 21300000, guid: 7ee76aa704bf5874e9c6b413729f72fe, type: 3}
     - {fileID: 21300000, guid: 994796bd09ad9ea4b910a4e8157e99b6, type: 3}
     - {fileID: 21300000, guid: de9714f3b21127e4196ebe9bd2163252, type: 3}
-    - {fileID: 21300000, guid: de9714f3b21127e4196ebe9bd2163252, type: 3}
     - {fileID: 21300000, guid: 8a8fbecbb5021704b98e2180334900cb, type: 3}
     - {fileID: 21300000, guid: 96f5eb2ddc8448f47972a4894ee8f3be, type: 3}
   m_AnimationClipSettings:
@@ -64,7 +61,7 @@ AnimationClip:
     m_AdditiveReferencePoseClip: {fileID: 0}
     m_AdditiveReferencePoseTime: 0
     m_StartTime: 0
-    m_StopTime: 0.51666665
+    m_StopTime: 0.43333334
     m_OrientationOffsetY: 0
     m_Level: 0
     m_CycleOffset: 0

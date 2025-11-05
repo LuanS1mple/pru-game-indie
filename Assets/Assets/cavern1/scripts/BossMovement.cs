@@ -19,7 +19,7 @@ public class BossMovement : MonoBehaviour
     private bool facingRight = true;
     private bool isAttacking = false;
     private bool isGrounded = true;
-    private bool isJumping = false;  // kiểm soát trạng thái nhảy
+    private bool isJumping = false;
     private float nextAttackTime = 0f;
 
     [Header("Jump Attack")]
@@ -124,9 +124,9 @@ public class BossMovement : MonoBehaviour
     int GetRandomAttackType()
     {
         float rand = Random.value; // 0.0 - 1.0
-        if (rand < 0.6f)
+        if (rand < 0.2f)
             return 1; // 60%
-        else if (rand < 0.8f)
+        else if (rand < 0.4f)
             return 2; // 20%
         else
             return 3; // 20%
@@ -140,11 +140,17 @@ public class BossMovement : MonoBehaviour
 
     void Jump()
     {
-        if (isGrounded)
+        if (isGrounded && player != null)
         {
-            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+            Vector2 targetPos = new Vector2(player.position.x, player.position.y + 2f);
+            Vector2 direction = (targetPos - (Vector2)transform.position).normalized;
+            Vector2 jumpDirection = new Vector2(direction.x, Mathf.Abs(direction.y) + 1.5f).normalized;
+            rb.velocity = jumpDirection * jumpForce;
+
             isGrounded = false;
             isJumping = true;
+
+            Debug.Log("🦘 Boss nhảy lên phía trên Player!");
         }
     }
 
@@ -166,7 +172,6 @@ public class BossMovement : MonoBehaviour
 
                 Debug.Log("💥 Boss chạm đất → kích hoạt JumpAttack!");
 
-                // Reset trạng thái nhảy sau khi tiếp đất
                 StartCoroutine(ResetJumpFlag());
             }
         }

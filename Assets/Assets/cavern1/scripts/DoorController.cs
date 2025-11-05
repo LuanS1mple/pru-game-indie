@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.SceneManagement;
-using System.Collections; // ✅ BẮT BUỘC PHẢI THÊM DÒNG NÀY
+using System.Collections;
 
 public class DoorController : MonoBehaviour
 {
@@ -10,14 +10,12 @@ public class DoorController : MonoBehaviour
     [Header("Layer Player (tự động tìm nếu chưa gán)")]
     public LayerMask playerLayer;
 
-    // ✅ Thêm biến này để tránh gọi load nhiều lần
     private bool isLoading = false;
 
     void Awake()
     {
         Debug.Log("DoorController Awake, targetScene: " + targetScene);
 
-        // Tự động gán layer Player
         if (playerLayer.value == 0)
         {
             int playerLayerIndex = LayerMask.NameToLayer("Player");
@@ -40,12 +38,10 @@ public class DoorController : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // Nếu đã bắt đầu load scene thì không làm gì cả
         if (isLoading) return;
 
         Debug.Log("Object chạm vào cửa: " + other.name + ", Layer: " + LayerMask.LayerToName(other.gameObject.layer));
 
-        // Kiểm tra xem collider có thuộc playerLayer không
         if ((playerLayer.value & (1 << other.gameObject.layer)) == 0)
         {
             Debug.Log("Không phải Player → bỏ qua");
@@ -57,32 +53,43 @@ public class DoorController : MonoBehaviour
             Debug.LogWarning("targetScene chưa được gán trong DoorController!");
             return;
         }
-        isLoading = true;
 
+        isLoading = true;
         StartCoroutine(LoadSceneAfterDelay(targetScene));
     }
 
     private IEnumerator LoadSceneAfterDelay(string sceneName)
     {
-        Debug.Log($"Player chạm cửa. Bắt đầu chờ 3 giây trước khi tải {sceneName}...");
+        Debug.Log($"[SceneTransition] Player chạm cửa. Bắt đầu chờ 3 giây trước khi tải scene '{sceneName}'...");
 
-        // Chờ 3 giây (sử dụng Realtime để không bị ảnh hưởng bởi Time.timeScale)
         yield return new WaitForSecondsRealtime(3f);
+        Debug.Log("[SceneTransition] Đã chờ 3 giây. Bắt đầu chuẩn bị chuyển scene...");
 
-        Debug.Log("Đã chờ 3 giây. Bắt đầu tải scene");
-
+        // 🔹 1. Lưu dữ liệu Player trước khi chuyển
         var player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
             var stats = player.GetComponent<PlayerStats>();
-            if (stats != null && PlayerManager.Instance != null)
-            {
-                PlayerManager.Instance.SaveFrom(stats);
-                Debug.Log("Đã lưu trạng thái player trước khi chuyển scene");
-            }
 
-            // Sử dụng LoadSceneAsync để không bị giật lag
-            SceneManager.LoadSceneAsync(sceneName);
+            if (stats != null && GameDataManager.Instance != null)
+            {
+                GameDataManager.Instance.SavePlayerData(stats);
+                Debug.Log($"[SceneTransition] ✅ Đã lưu trạng thái player: HP {stats.CurrentHealth}/{stats.MaxHealth}, ATK {stats.Attack}, DEF {stats.Defense}");
+            }
+            else
+            {
+                Debug.LogWarning("[SceneTransition] ⚠ Không thể lưu dữ liệu Player — thiếu PlayerStats hoặc GameDataManager!");
+            }
         }
+
+        // 🔹 2. Chuyển scene
+        Debug.Log($"[SceneTransition] Đang tải scene '{sceneName}'...");
+        AsyncOperation loadOp = SceneManager.LoadSceneAsync(sceneName);
+        while (!loadOp.isDone)
+        {
+            yield return null;
+        }
+
+        Debug.Log("[SceneTransition] ✅ Scene mới đã được tải thành công.");
     }
 }

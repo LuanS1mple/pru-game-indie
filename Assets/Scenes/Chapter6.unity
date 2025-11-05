@@ -17775,6 +17775,7 @@ GameObject:
   - component: {fileID: 726147354106538541}
   - component: {fileID: 5288538285602998108}
   - component: {fileID: 7222862152221280875}
+  - component: {fileID: 7222862152221280876}
   m_Layer: 8
   m_Name: player
   m_TagString: Player
@@ -18503,6 +18504,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   keyCount: 0
   door: {fileID: 1993231126}
+--- !u!114 &7222862152221280876
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 726147354106538555}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 080dd03c0d8d09c4088831a08bd9f5a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentHealth: 0
+  maxHealth: 0
+  attack: 0
+  defense: 0
 --- !u!1001 &7481819587408226807
 PrefabInstance:
   m_ObjectHideFlags: 0

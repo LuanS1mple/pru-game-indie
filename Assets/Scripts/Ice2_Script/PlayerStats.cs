@@ -233,19 +233,20 @@ public class PlayerStats : MonoBehaviour
 
     void Start()
     {
-        if (PlayerManager.Instance != null && PlayerManager.Instance.maxHealth > 0)
+        // 🔹 Load lại thông số từ GameDataManager khi vừa spawn
+        if (GameDataManager.Instance != null)
         {
-            PlayerManager.Instance.LoadTo(this);
-            Debug.Log("[PlayerStats] Loaded saved stats from PlayerManager");
+            GameDataManager.Instance.LoadPlayerData(this);
         }
         else
         {
-            Debug.Log("[PlayerStats] No saved data found, using default stats");
+            Debug.LogWarning("[PlayerStats] ⚠ GameDataManager chưa được tạo!");
         }
 
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
         if (autoPullFromBase && baseStats)
             StartCoroutine(CoPullFromBase());
+
     }
 
     // ===================== PUBLIC API =====================
@@ -412,4 +413,5 @@ public class PlayerStats : MonoBehaviour
 
         Debug.Log($"[PlayerStats] Stats loaded from manager: HP {currentHealth}/{maxHealth}, ATK {attack}, DEF {defense}");
     }
+
 }
