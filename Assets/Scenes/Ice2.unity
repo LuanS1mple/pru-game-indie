@@ -750,6 +750,22 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 8093320978058389186, guid: 5d5711577d541b5498ff6e9f8a89ffd6, type: 3}
+      propertyPath: hurt
+      value: 
+      objectReference: {fileID: 8300000, guid: 83e74510951627c47a9e2ac880d867bc, type: 3}
+    - target: {fileID: 8093320978058389186, guid: 5d5711577d541b5498ff6e9f8a89ffd6, type: 3}
+      propertyPath: skill1
+      value: 
+      objectReference: {fileID: 8300000, guid: 27725d1708cc2af4ba26742bb31f4a85, type: 3}
+    - target: {fileID: 8093320978058389186, guid: 5d5711577d541b5498ff6e9f8a89ffd6, type: 3}
+      propertyPath: skill2
+      value: 
+      objectReference: {fileID: 8300000, guid: 71bce06aea4d2074eb1b0a50f046a8ce, type: 3}
+    - target: {fileID: 8093320978058389186, guid: 5d5711577d541b5498ff6e9f8a89ffd6, type: 3}
+      propertyPath: swordHit
+      value: 
+      objectReference: {fileID: 8300000, guid: 95421735243b13044a65e913ad5cdd3c, type: 3}
     - target: {fileID: 8093320978058389187, guid: 5d5711577d541b5498ff6e9f8a89ffd6, type: 3}
       propertyPath: m_RootOrder
       value: 7
