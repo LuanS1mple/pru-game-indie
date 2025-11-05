@@ -18063,7 +18063,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entityName: player
   maxHP: 200
-  currentHP: 200
+  currentHP: 1000
   attack: 15
   defense: 5
   isInvulnerable: 0

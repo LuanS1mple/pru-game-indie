@@ -36,15 +36,34 @@ public class BossRoomManager : MonoBehaviour
     }
 
     // --- Khi 1 con quái chết ---
+    private bool isFirstEnemyKilled = false;
     public void EnemyDied()
     {
         if (enemiesRemaining > 0)
         {
-            enemiesRemaining--;
+            if (!isFirstEnemyKilled)
+            {
+                // Lần đầu tiên: Trừ 2 quái vật
+                enemiesRemaining -= 2;
+                isFirstEnemyKilled = true;
+                Debug.Log("❗ Quái đầu tiên chết! Trừ 2 quái còn lại.");
+            }
+            else
+            {
+                // Các lần sau: Chỉ trừ 1 quái vật
+                enemiesRemaining--;
+            }
+
+            // Đảm bảo số quái còn lại không âm
+            if (enemiesRemaining < 0) enemiesRemaining = 0;
+
+            // Kiểm tra mở đường sang phòng Boss
             if (enemiesRemaining <= 0 && !isBossActive && !bossDefeated)
             {
                 UnlockEntry();
             }
+
+            Debug.Log($"Số quái còn lại: {enemiesRemaining}");
         }
     }
 
