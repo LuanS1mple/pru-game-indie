@@ -6,9 +6,11 @@ public class FlyingEyeBehaviors : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private AIPath aiPath;
+    [Tooltip("Nếu để trống sẽ tự Find bằng tag 'Player'")]
     [SerializeField] private GameObject Target;
+
     private Animator animator;
-    private SpriteRenderer spriteRenderer; // ✅ only flip sprite, not object
+    private SpriteRenderer spriteRenderer;
     private BaseStats playerStats;
 
     [Header("Stats")]
@@ -26,20 +28,20 @@ public class FlyingEyeBehaviors : MonoBehaviour
     private float lastAttackTime;
     private bool isAttackingNow = false;
 
-    // ✅ Pixel enemies dạng này mặc định nhìn TRÁI
-    private bool facingRight = false;
-
     public int GetCurrentHealth() => currentHealth;
 
     void Start()
     {
         animator = GetComponent<Animator>();
-        spriteRenderer = GetComponentInChildren<SpriteRenderer>(); // ✅ get sprite
-
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>(true);
         aiPath = aiPath ?? GetComponent<AIPath>();
 
         if (aiPath != null)
+        {
             aiPath.canMove = true;
+            aiPath.updateRotation = false; // Không cho A* tự xoay
+            transform.rotation = Quaternion.identity;
+        }
 
         if (Target == null)
             Target = GameObject.FindGameObjectWithTag("Player");
@@ -62,12 +64,13 @@ public class FlyingEyeBehaviors : MonoBehaviour
         float distance = Vector2.Distance(transform.position, Target.transform.position);
         float timeSinceLastAttack = Time.time - lastAttackTime;
 
-        // Movement logic
+        // Di chuyển trong phạm vi phát hiện
         if (distance <= DetectRange && distance > AttackRange)
         {
             aiPath.canMove = true;
             aiPath.destination = Target.transform.position;
         }
+        // Trong tầm tấn công
         else if (distance <= AttackRange)
         {
             aiPath.canMove = false;
@@ -78,32 +81,11 @@ public class FlyingEyeBehaviors : MonoBehaviour
                 lastAttackTime = Time.time;
             }
         }
+        // Ngoài tầm phát hiện
         else
         {
             aiPath.canMove = false;
         }
-
-        HandleFlip();
-    }
-
-    // ✅ Flip đúng hướng dựa theo SpriteRenderer
-    private void HandleFlip()
-    {
-        float dirToTarget = Target.transform.position.x - transform.position.x;
-
-        if (dirToTarget > 0 && !facingRight)
-            Flip();
-        else if (dirToTarget < 0 && facingRight)
-            Flip();
-    }
-
-    private void Flip()
-    {
-        facingRight = !facingRight;
-
-        // ✅ Chỉ lật sprite, không lật object (AIPath sẽ bị lỗi)
-        if (spriteRenderer != null)
-            spriteRenderer.flipX = !spriteRenderer.flipX;
     }
 
     IEnumerator AttackRoutine()
@@ -112,7 +94,6 @@ public class FlyingEyeBehaviors : MonoBehaviour
         isAttackingNow = true;
 
         animator?.SetTrigger("attack");
-
         yield return new WaitForSeconds(0.4f);
 
         if (!isDead && Target != null && playerStats != null)
@@ -122,14 +103,7 @@ public class FlyingEyeBehaviors : MonoBehaviour
                 playerStats.TakeDamage(damage);
         }
 
-        float timer = 0f;
-        while (timer < AttackCooldown)
-        {
-            if (isDead) yield break;
-            timer += Time.deltaTime;
-            yield return null;
-        }
-
+        yield return new WaitForSeconds(AttackCooldown);
         if (!isDead)
             isAttackingNow = false;
     }
@@ -162,9 +136,9 @@ public class FlyingEyeBehaviors : MonoBehaviour
     private IEnumerator CoTakeHit()
     {
         animator?.SetTrigger("takehit");
-        aiPath.canMove = false;
+        if (aiPath != null) aiPath.canMove = false;
         yield return new WaitForSeconds(0.4f);
-        aiPath.canMove = true;
+        if (!isDead && aiPath != null) aiPath.canMove = true;
     }
 
     private void Die()
@@ -173,7 +147,7 @@ public class FlyingEyeBehaviors : MonoBehaviour
         isDead = true;
 
         StopAllCoroutines();
-        aiPath.canMove = false;
+        if (aiPath != null) aiPath.canMove = false;
 
         foreach (var col in GetComponentsInChildren<Collider2D>())
             col.enabled = false;
@@ -195,14 +169,17 @@ public class FlyingEyeBehaviors : MonoBehaviour
     private IEnumerator DestroyAfterDeath()
     {
         float delay = 1f;
+
         if (animator != null)
         {
             foreach (var clip in animator.runtimeAnimatorController.animationClips)
-                if (clip.name.ToLower().Contains("death")) delay = clip.length;
+            {
+                if (clip.name.ToLower().Contains("death"))
+                    delay = clip.length;
+            }
         }
 
         yield return new WaitForSeconds(delay);
-
         Destroy(transform.root.gameObject);
     }
 

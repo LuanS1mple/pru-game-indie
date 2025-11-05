@@ -32,18 +32,18 @@ public class MinibossBehaviour : MonoBehaviour
     private bool isAttackingNow = false;
     private int normalAttackCount = 0;
 
-    private bool facingRight = true;
     public int GetCurrentHealth() => currentHealth;
     public int GetMaxHealth() => maxHealth;
 
     void Start()
     {
-        animator = GetComponent<Animator>();
+        animator = GetComponentInChildren<Animator>();
         aiPath = aiPath ?? GetComponent<AIPath>();
 
         if (aiPath != null)
         {
             aiPath.canMove = true;
+            aiPath.updateRotation = false;
         }
 
         if (Target == null)
@@ -91,24 +91,6 @@ public class MinibossBehaviour : MonoBehaviour
         {
             aiPath.canMove = false;
         }
-
-        // --- Flip hướng dựa vào player ---
-        if (Target != null)
-        {
-            float dirToTarget = Target.transform.position.x - transform.position.x;
-            if (dirToTarget > 0 && !facingRight)
-                Flip();
-            else if (dirToTarget < 0 && facingRight)
-                Flip();
-        }
-    }
-
-    private void Flip()
-    {
-        facingRight = !facingRight;
-        Vector3 scale = transform.localScale;
-        scale.x *= -1;
-        transform.localScale = scale;
     }
 
     IEnumerator AttackRoutine()
@@ -117,13 +99,8 @@ public class MinibossBehaviour : MonoBehaviour
 
         // 🔁 3 lần tấn công thường, 1 lần đặc biệt
         normalAttackCount++;
-        bool isSpecial = false;
-
-        if (normalAttackCount >= 4)
-        {
-            isSpecial = true;
-            normalAttackCount = 0;
-        }
+        bool isSpecial = normalAttackCount >= 4;
+        if (isSpecial) normalAttackCount = 0;
 
         if (animator != null)
         {
@@ -133,9 +110,7 @@ public class MinibossBehaviour : MonoBehaviour
                 animator.SetTrigger("trig_attack");
         }
 
-        Debug.Log(isSpecial ? "💥 Miniboss dùng SPECIAL Attack!" : "⚔️ Miniboss dùng Attack thường!");
-
-        yield return new WaitForSeconds(0.5f); // delay gây damage
+        yield return new WaitForSeconds(0.5f);
 
         if (!isDead && Target != null && playerStats != null)
         {
@@ -144,7 +119,6 @@ public class MinibossBehaviour : MonoBehaviour
             {
                 int dmg = isSpecial ? specialDamage : normalDamage;
                 playerStats.TakeDamage(dmg);
-                Debug.Log($"🩸 Player bị Miniboss gây {dmg} damage ({(isSpecial ? "SPECIAL" : "NORMAL")})!");
             }
         }
 
@@ -169,7 +143,7 @@ public class MinibossBehaviour : MonoBehaviour
         if (isDead) return;
 
         currentHealth -= damage;
-        if (currentHealth < 0) currentHealth = 0;
+        currentHealth = Mathf.Max(currentHealth, 0);
 
         Debug.Log($"Miniboss bị đánh! Mất {damage} HP. Còn {currentHealth}/{maxHealth}");
 
@@ -183,7 +157,6 @@ public class MinibossBehaviour : MonoBehaviour
         isDead = true;
 
         OnBossDied?.Invoke();
-
         aiPath.canMove = false;
 
         Collider2D col = GetComponent<Collider2D>();
@@ -191,11 +164,9 @@ public class MinibossBehaviour : MonoBehaviour
 
         Debug.Log("💀 Miniboss đã chết!");
 
-        // ✅ Hủy luôn cha nếu có, hoặc chính nó nếu không có cha
         GameObject toDestroy = transform.parent != null ? transform.parent.gameObject : gameObject;
         Destroy(toDestroy, 2f);
     }
-
 
     private void OnDrawGizmosSelected()
     {
