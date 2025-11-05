@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Monster2Controller : MonoBehaviour
 {
     public Transform gunTip;
     public GameObject bullet;
-    public float fireRate = 0.5f;   
+    public float fireRate = 0.5f;
     private float nextFire = 0f;
 
     void Update()
@@ -19,9 +16,18 @@ public class Monster2Controller : MonoBehaviour
     {
         if (Time.time > nextFire)
         {
-
             nextFire = Time.time + fireRate;
-            Instantiate(bullet, gunTip.position, Quaternion.Euler(new Vector3(0, 0, 180)));
+
+            // ✅ Spawn đạn theo rotation hiện tại của GunTip
+            GameObject newBullet = Instantiate(bullet, gunTip.position, gunTip.rotation);
+
+            // ✅ Nếu viên đạn có Rigidbody2D, bắn theo hướng GunTip đang nhìn
+            Rigidbody2D rb = newBullet.GetComponent<Rigidbody2D>();
+            if (rb != null)
+            {
+                float bulletSpeed = 10f; // tùy bạn
+                rb.velocity = gunTip.right * bulletSpeed;
+            }
         }
     }
 }

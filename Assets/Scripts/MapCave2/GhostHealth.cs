@@ -135,14 +135,16 @@ public class GhostHealth : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (isDead || isInvulnerable || stats == null) return;
-        if (!collision.CompareTag("TestAttack")) return;
 
-        PlayerCombat playerCombat = collision.GetComponentInParent<PlayerCombat>();
-        if (playerCombat != null && playerCombat.playerStats != null)
+        if (collision.CompareTag("TestAttack"))
         {
-            int damage = (int)playerCombat.playerStats.attack;
+            // ✅ Lấy damage giống logic của FlyingEyeBehaviors
+            BaseStats attacker = collision.GetComponentInParent<BaseStats>();
+            int damage = attacker != null ? Mathf.RoundToInt(attacker.attack) : 5;
+
             Debug.Log($"[GhostHealth] ⚔ Bị tấn công bởi {collision.name}, Damage: {damage}");
             TakeDamage(damage);
         }
     }
+
 }
