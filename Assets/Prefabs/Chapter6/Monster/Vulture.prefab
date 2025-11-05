@@ -155,7 +155,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   aiPath: {fileID: 8837325523454168590}
   Target: {fileID: 0}
-  DetectRange: 20
+  DetectRange: 10
   AttackRange: 10
   AttackCooldown: 0
 --- !u!114 &1711198656

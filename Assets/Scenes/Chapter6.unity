@@ -133,6 +133,10 @@ PrefabInstance:
       propertyPath: Target
       value: 
       objectReference: {fileID: 726147353365746358}
+    - target: {fileID: 1244471734501246549, guid: 283b68012c247634299e84433608f371, type: 3}
+      propertyPath: DetectRange
+      value: 10
+      objectReference: {fileID: 0}
     - target: {fileID: 8837325523454168584, guid: 283b68012c247634299e84433608f371, type: 3}
       propertyPath: m_RootOrder
       value: 5
