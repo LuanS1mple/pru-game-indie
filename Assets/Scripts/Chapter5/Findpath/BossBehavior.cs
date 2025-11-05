@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 
 public class BossBehavior : BaseStats
 {
@@ -14,6 +15,10 @@ public class BossBehavior : BaseStats
     private Rigidbody2D rb;
     private Animator anim;
 
+    [Header("Death & Cutscene Settings")]
+    public string cutsceneSceneName = "CutSence1";
+    public float deathWaitTime = 3f;
+
     [Header("Skill Points")]
     public Transform skill2SpawnPoint; // Kéo GameObject con (Child) vào đây
 
@@ -21,7 +26,7 @@ public class BossBehavior : BaseStats
     public GameObject lightningPillarPrefab; // Skill 1
     public GameObject explosionAreaPrefab; // Skill 2
 
-    // ⭐ SKILL 3: BẤT TỬ (ĐÃ SỬA LỖI HỒI CHIÊU VÀ CAST) ⭐
+    // ⭐ SKILL 3: BẤT TỬ ⭐
     [Header("Skill 3 (Invulnerability)")]
     public GameObject skill3CastPrefab;
     public GameObject invulnerabilityEffectPrefab;
@@ -29,10 +34,11 @@ public class BossBehavior : BaseStats
     public float skill3Duration = 4f;
     public float skill3Cooldown = 30f;
     private bool isSkill3Ready = true;
-    private bool isInvulnerable = false; // Trạng thái bất tử (MIỄN NHIỄM SÁT THƯƠNG)
+    private Coroutine skill3CooldownCoroutine;
+    private bool isInvulnerable = false;
     private GameObject invulnEffectInstance;
     private GameObject castEffectInstance;
-    private bool isCastingSkill3 = false; // Chỉ True trong 0.8s Cast ban đầu
+    private bool isCastingSkill3 = false;
 
     // ... (Movement Settings) ...
     [Header("Movement Settings")]
@@ -46,19 +52,31 @@ public class BossBehavior : BaseStats
     public float attackRange = 1.5f;
     public Collider2D attackCollider;
     public float knockbackForce = 3f;
+    // Đảm bảo bạn đã khai báo attackCooldown trong BaseStats hoặc ở đây
+    public float attackCooldown = 1.0f;
+
+    [Header("Counter Attack Settings")]
+    [Tooltip("Số lần Boss bị đánh trước khi thực hiện đòn phản công.")]
+    public int hitsForCounterAttack = 4;
+    private int currentHitCounter = 0;
+    private bool isCounterAttacking = false;
+    // ⭐ CỜ KHÓA MỚI: Ngăn chặn logic đếm hit khi đang bắt đầu phản công ⭐
+    private bool isCounterAttackWindUp = false;
 
     [Header("Skill Settings")]
     // Skill 1 (Cột Sét)
     public float skill1Cooldown = 5f;
     public float skill1Range = 10f;
     private bool isSkill1Ready = true;
+    private Coroutine skill1CooldownCoroutine;
 
     // Skill 2 (Vòng Xoáy Năng Lượng)
     public float skill2Cooldown = 8f;
     public float skill2Range = 3f;
     private bool isSkill2Ready = true;
+    private Coroutine skill2CooldownCoroutine;
 
-    private bool isUsingSkill = false; // Dùng cho Skill 1 và Skill 2
+    private bool isUsingSkill = false;
     private LayerMask playerLayerMask;
 
     private GameObject explosionInstance;
@@ -102,6 +120,11 @@ public class BossBehavior : BaseStats
             attackCollider.enabled = false;
 
         playerLayerMask = 1 << LayerMask.NameToLayer("Player");
+
+        if (attackCooldown <= 0.01f)
+        {
+            attackCooldown = 1.0f;
+        }
     }
 
     void Start()
@@ -110,7 +133,6 @@ public class BossBehavior : BaseStats
         if (manager != null)
         {
             manager.enemiesRemaining++;
-            Debug.Log($"[{entityName}] đã đăng ký với Boss Room Manager. Tổng quái hiện tại: {manager.enemiesRemaining}");
         }
     }
 
@@ -139,14 +161,40 @@ public class BossBehavior : BaseStats
     {
         if (attackCoroutine != null) StopCoroutine(attackCoroutine);
         isAttacking = false;
+        isCounterAttacking = false;
+        isCounterAttackWindUp = false; // ⭐ Reset cờ khóa ⭐
 
-        if (!isInvulnerable && !isCastingSkill3) StopAllCoroutines();
+        // LƯU THAM CHIẾU COOLDOWN TRƯỚC KHI HỦY
+        Coroutine tempCooldown3 = skill3CooldownCoroutine;
+        Coroutine tempCooldown1 = skill1CooldownCoroutine;
+        Coroutine tempCooldown2 = skill2CooldownCoroutine;
+
+        StopAllCoroutines();
+
+        // KHỞI ĐỘNG LẠI COOLDOWN NẾU BỊ HỦY VÀ ĐANG KHÔNG READY
+        if (!isSkill3Ready && tempCooldown3 != null)
+        {
+            skill3CooldownCoroutine = StartCoroutine(Skill3CooldownRoutine());
+        }
+        if (!isSkill1Ready && tempCooldown1 != null)
+        {
+            skill1CooldownCoroutine = StartCoroutine(Skill1CooldownRoutine());
+        }
+        if (!isSkill2Ready && tempCooldown2 != null)
+        {
+            skill2CooldownCoroutine = StartCoroutine(Skill2CooldownRoutine());
+        }
+
+        // Hủy hiệu ứng skill bị ngắt khi chuyển trạng thái
+        if (explosionInstance != null) { Destroy(explosionInstance); explosionInstance = null; }
+        if (castEffectInstance != null) { Destroy(castEffectInstance); castEffectInstance = null; }
+        if (invulnEffectInstance != null) { Destroy(invulnEffectInstance); invulnEffectInstance = null; }
+        isInvulnerable = false;
 
         isUsingSkill = false;
         isCastingSkill3 = false;
+        if (attackCollider != null) attackCollider.enabled = false;
 
-        isSkill1Ready = true;
-        isSkill2Ready = true;
 
         if (waitCoroutine != null) StopCoroutine(waitCoroutine);
         isWaiting = false;
@@ -159,14 +207,39 @@ public class BossBehavior : BaseStats
     {
         if (attackCoroutine != null) StopCoroutine(attackCoroutine);
         isAttacking = false;
+        isCounterAttacking = false;
+        isCounterAttackWindUp = false; // ⭐ Reset cờ khóa ⭐
 
-        if (!isInvulnerable && !isCastingSkill3) StopAllCoroutines();
+        // LƯU THAM CHIẾU COOLDOWN TRƯỚC KHI HỦY
+        Coroutine tempCooldown3 = skill3CooldownCoroutine;
+        Coroutine tempCooldown1 = skill1CooldownCoroutine;
+        Coroutine tempCooldown2 = skill2CooldownCoroutine;
+
+        StopAllCoroutines();
+
+        // KHỞI ĐỘNG LẠI COOLDOWN NẾU BỊ HỦY VÀ ĐANG KHÔNG READY
+        if (!isSkill3Ready && tempCooldown3 != null)
+        {
+            skill3CooldownCoroutine = StartCoroutine(Skill3CooldownRoutine());
+        }
+        if (!isSkill1Ready && tempCooldown1 != null)
+        {
+            skill1CooldownCoroutine = StartCoroutine(Skill1CooldownRoutine());
+        }
+        if (!isSkill2Ready && tempCooldown2 != null)
+        {
+            skill2CooldownCoroutine = StartCoroutine(Skill2CooldownRoutine());
+        }
+
+        // Hủy hiệu ứng skill bị ngắt khi chuyển trạng thái
+        if (explosionInstance != null) { Destroy(explosionInstance); explosionInstance = null; }
+        if (castEffectInstance != null) { Destroy(castEffectInstance); castEffectInstance = null; }
+        if (invulnEffectInstance != null) { Destroy(invulnEffectInstance); invulnEffectInstance = null; }
+        isInvulnerable = false;
 
         isUsingSkill = false;
         isCastingSkill3 = false;
-
-        isSkill1Ready = true;
-        isSkill2Ready = true;
+        if (attackCollider != null) attackCollider.enabled = false;
 
         if (waitCoroutine != null) StopCoroutine(waitCoroutine);
         isWaiting = false;
@@ -188,27 +261,18 @@ public class BossBehavior : BaseStats
 
     private void Update()
     {
-        // 1. NGĂN CHẶN NẾU ĐANG CHẾT/TẤN CÔNG/DÙNG SKILL CAST
-        // Lưu ý: isInvulnerable (Bất tử) KHÔNG chặn hành động, chỉ isCastingSkill3 (Tụ chiêu) chặn
-        if (isDead || isAttacking || isCastingSkill3)
+        // 1. NGĂN CHẶN NẾU ĐANG CHẾT/TẤN CÔNG/DÙNG SKILL CAST / PHẢN CÔNG
+        if (isDead || isAttacking || isCastingSkill3 || isCounterAttacking)
         {
             rb.velocity = Vector2.zero;
-            if (!isAttacking && !isCastingSkill3)
+            if (!isAttacking && !isCastingSkill3 && !isCounterAttacking)
                 if (anim) anim.SetFloat("Speed", 0);
-            if ((isAttacking || isCastingSkill3) && target)
+            if ((isAttacking || isCastingSkill3 || isCounterAttacking) && target)
                 RotateToDirection(target.position.x - transform.position.x);
             return;
         }
 
-        // ⭐ 2. KIỂM TRA LOGIC SKILL 3 (ƯU TIÊN HÀNG ĐẦU) ⭐
-        if (currentHP / maxHP <= skill3MinHealthPercentage && isSkill3Ready)
-        {
-            Debug.Log($"[{entityName}] Kích hoạt Skill 3 do máu thấp và đã sẵn sàng lại!");
-            rb.velocity = Vector2.zero;
-            if (anim) anim.SetFloat("Speed", 0);
-            UseSkill3();
-            return;
-        }
+        // ... (Logic kiểm tra Target và Patrol) ...
 
         if (target == null || graph == null)
         {
@@ -231,39 +295,40 @@ public class BossBehavior : BaseStats
                 fallbackPatrolPoint = FindFallbackPatrolWaypoint(transform.position);
             }
 
-            // ⭐ 3. LOGIC SKILL 2 (ƯU TIÊN 2) ⭐
-            // Boss có thể dùng S1/S2 khi đang BẤT TỬ (isInvulnerable=true), vì isUsingSkill chỉ ngăn S1/S2 chồng chéo.
+            // ⭐ ƯU TIÊN 1: SKILL 3 (Máu thấp)
+            if (currentHP / maxHP <= skill3MinHealthPercentage && isSkill3Ready)
+            {
+                UseSkill3();
+                return;
+            }
+
+            // ⭐ ƯU TIÊN 2: SKILL 2 
             if (!isUsingSkill && isSkill2Ready && distanceToPlayer <= skill2Range)
             {
-                rb.velocity = Vector2.zero;
-                if (anim) anim.SetFloat("Speed", 0);
                 UseSkill2();
                 return;
             }
 
-            // ⭐ 4. LOGIC SKILL 1 (ƯU TIÊN 3) ⭐
+            // ⭐ ƯU TIÊN 3: SKILL 1
             if (!isUsingSkill && isSkill1Ready && distanceToPlayer <= skill1Range)
             {
-                rb.velocity = Vector2.zero;
-                if (anim) anim.SetFloat("Speed", 0);
                 UseSkill1();
                 return;
             }
 
 
-            // ⭐ 5. LOGIC TẤN CÔNG THƯỜNG (ƯU TIÊN 4) ⭐
-            if (isChasing && distanceToPlayer <= attackRange)
+            // ⭐ ƯU TIÊN 4: TẤN CÔNG THƯỜNG
+            // Chặn attack thường nếu đang phản công (Counter) hoặc đang trong giai đoạn khóa (WindUp)
+            if (!isUsingSkill && !isAttacking && !isCounterAttacking && !isCounterAttackWindUp && isChasing && distanceToPlayer <= attackRange)
             {
-                rb.velocity = Vector2.zero;
-                if (anim) anim.SetFloat("Speed", 0);
                 StartAttack();
                 return;
             }
 
-            // ⭐ 6. LOGIC ĐUỔI THEO (ƯU TIÊN 5) ⭐
+            // ⭐ ƯU TIÊN 5: ĐUỔI THEO
             ChaseTargetWithWaypointLimit();
         }
-        else // Player nằm ngoài vùng chữ nhật
+        else
         {
             if (isChasing || isWaiting || isGuardBound)
             {
@@ -295,6 +360,7 @@ public class BossBehavior : BaseStats
     }
 
 
+    // --- HÀM TẤN CÔNG THƯỜNG ---
     void StartAttack()
     {
         if (isAttacking) return;
@@ -310,28 +376,74 @@ public class BossBehavior : BaseStats
             RotateToDirection(target.position.x - transform.position.x);
         if (anim) anim.SetTrigger("Attack");
 
-        yield return new WaitForSeconds(0.1f);
-        if (attackCollider != null) attackCollider.enabled = true;
-        canDealDamage = true;
-        hitPlayers.Clear();
-
-        yield return new WaitForSeconds(0.2f);
-        if (attackCollider != null) attackCollider.enabled = false;
-        canDealDamage = false;
-
-        yield return new WaitForSeconds(attackCooldown - 0.3f);
+        yield return new WaitForSeconds(attackCooldown);
 
         isAttacking = false;
         attackCoroutine = null;
     }
 
+    // --- HÀM PHẢN CÔNG MỚI (Đã sửa đổi để thêm Khóa Khởi Động) ---
+    void StartCounterAttack()
+    {
+        if (isDead || isCounterAttacking || isUsingSkill || isCastingSkill3)
+        {
+            return;
+        }
+
+        // Ngắt di chuyển/tấn công thường đang chạy
+        if (attackCoroutine != null) StopCoroutine(attackCoroutine);
+        if (waitCoroutine != null) StopCoroutine(waitCoroutine);
+        if (rb != null) rb.velocity = Vector2.zero;
+
+        isAttacking = false;
+        isWaiting = false;
+
+        StartCoroutine(CounterAttackRoutine());
+    }
+
+    private IEnumerator CounterAttackRoutine()
+    {
+        // ⭐ BƯỚC 1: KHỞI ĐỘNG CỜ KHÓA ⭐
+        isCounterAttackWindUp = true;
+        isCounterAttacking = true;
+
+        // 2. Dừng mọi di chuyển và xoay mặt về Player
+        rb.velocity = Vector2.zero;
+        if (anim) anim.SetFloat("Speed", 0);
+        if (target != null)
+            RotateToDirection(target.position.x - transform.position.x);
+
+        // 3. Kích hoạt Animation Attack thường
+        if (anim) anim.SetTrigger("Attack");
+
+        // ⭐ BƯỚC 4: CHỜ QUA GIAI ĐOẠN KHỞI ĐỘNG (0.3s) ⭐
+        // Khoảng thời gian này Boss không thể bị đếm hit
+        yield return new WaitForSeconds(0.3f);
+
+        isCounterAttackWindUp = false; // ⭐ Mở khóa ⭐
+
+        // 5. Chờ thời gian đòn đánh phản công còn lại kết thúc
+        float remainingAttackDuration = attackCooldown - 0.3f;
+        if (remainingAttackDuration < 0) remainingAttackDuration = 0;
+
+        yield return new WaitForSeconds(remainingAttackDuration);
+
+        // 6. Kết thúc phản công
+        isCounterAttacking = false;
+
+        HandleAnimation_DisableAttackCollider();
+    }
+    // --- HẾT PHẢN CÔNG ---
+
     public void HandleAnimation_EnableAttackCollider()
     {
         if (attackCollider == null) return;
-        Debug.Log($"[{entityName}] --- BẬT Hitbox Tấn công!", this.gameObject);
-        canDealDamage = true;
-        hitPlayers.Clear();
-        StartCoroutine(RefreshCollider());
+        if (isAttacking || isCounterAttacking)
+        {
+            canDealDamage = true;
+            hitPlayers.Clear();
+            StartCoroutine(RefreshCollider());
+        }
     }
     IEnumerator RefreshCollider()
     {
@@ -346,7 +458,6 @@ public class BossBehavior : BaseStats
     public void HandleAnimation_DisableAttackCollider()
     {
         if (attackCollider == null) return;
-        Debug.Log($"[{entityName}] --- TẮT Hitbox Tấn công.", this.gameObject);
         canDealDamage = false;
         attackCollider.enabled = false;
     }
@@ -360,7 +471,6 @@ public class BossBehavior : BaseStats
         {
             playerStats.TakeDamage(attack);
             hitPlayers.Add(collision);
-            Debug.Log($"[{entityName}] đã đánh trúng Player ({collision.name})! Gây {attack} sát thương.");
             Rigidbody2D playerRb = collision.attachedRigidbody;
             if (playerRb != null)
             {
@@ -377,7 +487,7 @@ public class BossBehavior : BaseStats
     public void HandleAnimation_TriggerTakeDamage(float damage) { TakeDamage(damage); }
 
 
-    // --- LOGIC SKILL CỘT SÉT (SKILL 1) ---
+    // --- LOGIC SKILL (Giữ nguyên) ---
 
     void UseSkill1()
     {
@@ -397,7 +507,7 @@ public class BossBehavior : BaseStats
         if (anim) anim.SetTrigger("Skill1");
 
         StartCoroutine(Skill1Routine());
-        StartCoroutine(Skill1CooldownRoutine());
+        skill1CooldownCoroutine = StartCoroutine(Skill1CooldownRoutine());
     }
 
     private IEnumerator Skill1Routine()
@@ -425,11 +535,9 @@ public class BossBehavior : BaseStats
     {
         yield return new WaitForSeconds(skill1Cooldown);
         isSkill1Ready = true;
-        Debug.Log($"[{entityName}] Skill 1 (Cột Sét) đã sẵn sàng!");
+        skill1CooldownCoroutine = null;
     }
 
-
-    // --- LOGIC SKILL VÒNG XOÁY (SKILL 2) ---
 
     void UseSkill2()
     {
@@ -449,7 +557,7 @@ public class BossBehavior : BaseStats
         if (anim) anim.SetTrigger("Skill2");
 
         StartCoroutine(Skill2Routine());
-        StartCoroutine(Skill2CooldownRoutine());
+        skill2CooldownCoroutine = StartCoroutine(Skill2CooldownRoutine());
     }
 
     private IEnumerator Skill2Routine()
@@ -460,7 +568,6 @@ public class BossBehavior : BaseStats
 
         if (skill2SpawnPoint == null)
         {
-            Debug.LogError("Skill 2 Spawn Point chưa được gán! Không thể tạo vòng xoáy.");
             isUsingSkill = false;
             yield break;
         }
@@ -493,11 +600,9 @@ public class BossBehavior : BaseStats
     {
         yield return new WaitForSeconds(skill2Cooldown);
         isSkill2Ready = true;
-        Debug.Log($"[{entityName}] Skill 2 (Vòng Xoáy Năng Lượng) đã sẵn sàng!");
+        skill2CooldownCoroutine = null;
     }
 
-
-    // --- LOGIC SKILL BẤT TỬ (SKILL 3) ---
 
     void UseSkill3()
     {
@@ -506,7 +611,6 @@ public class BossBehavior : BaseStats
         isSkill3Ready = false;
         isCastingSkill3 = true;
 
-        // ⭐ BẬT BẤT TỬ NGAY LẬP TỨC
         isInvulnerable = true;
 
         if (anim) anim.SetTrigger("Skill3");
@@ -514,17 +618,15 @@ public class BossBehavior : BaseStats
         if (target != null)
             RotateToDirection(target.position.x - transform.position.x);
 
-        // ⭐ TẠO HIỆU ỨNG BẤT TỬ NGAY LẬP TỨC
         if (invulnerabilityEffectPrefab != null && invulnEffectInstance == null)
         {
             invulnEffectInstance = Instantiate(invulnerabilityEffectPrefab, transform.position, Quaternion.identity);
             invulnEffectInstance.transform.SetParent(transform);
             invulnEffectInstance.transform.localPosition = Vector3.zero;
-            Debug.Log($"[{entityName}] KÍCH HOẠT BẤT TỬ ngay khi bắt đầu cast!");
         }
 
         StartCoroutine(Skill3Routine());
-        StartCoroutine(Skill3CooldownRoutine());
+        skill3CooldownCoroutine = StartCoroutine(Skill3CooldownRoutine());
     }
 
     private IEnumerator Skill3Routine()
@@ -532,7 +634,6 @@ public class BossBehavior : BaseStats
         rb.velocity = Vector2.zero;
         float castDuration = 0.8f;
 
-        // 1. TRIỆU HỒI HIỆU ỨNG CAST (THI TRIỂN)
         if (skill3CastPrefab != null)
         {
             castEffectInstance = Instantiate(skill3CastPrefab, transform.position, Quaternion.identity);
@@ -540,37 +641,23 @@ public class BossBehavior : BaseStats
             castEffectInstance.transform.localPosition = Vector3.zero;
         }
 
-        // Chờ thời gian cast
         yield return new WaitForSeconds(castDuration);
 
-        // 2. KẾT THÚC CAST VÀ DUY TRÌ BẤT TỬ (Bất tử đã bật ở UseSkill3)
         if (castEffectInstance != null)
         {
             Destroy(castEffectInstance);
             castEffectInstance = null;
         }
 
-        isCastingSkill3 = false; // Boss có thể di chuyển/dùng skill khác
+        isCastingSkill3 = false;
 
-        // 3. Giữ Bất tử tồn tại (thời gian còn lại = tổng thời gian - thời gian cast)
-        // Nếu skill3Duration > castDuration
         float activeDuration = skill3Duration - castDuration;
         if (activeDuration > 0)
         {
             yield return new WaitForSeconds(activeDuration);
         }
 
-        // Nếu không, chỉ cần chờ 0.2s phục hồi
-        else if (skill3Duration <= castDuration)
-        {
-            // Nếu thời gian Bất tử quá ngắn, ta hủy luôn hiệu ứng cast
-            Debug.LogWarning($"[{entityName}] Skill3 Duration ({skill3Duration}s) ngắn hơn Cast Duration ({castDuration}s). Vui lòng đặt Duration lớn hơn Cast!");
-        }
-
-
-        // 4. Kết thúc Bất tử và hủy hiệu ứng
         isInvulnerable = false;
-        Debug.Log($"[{entityName}] HỦY BẤT TỬ.");
 
         if (invulnEffectInstance != null)
         {
@@ -578,7 +665,6 @@ public class BossBehavior : BaseStats
             invulnEffectInstance = null;
         }
 
-        // 5. Giai đoạn phục hồi sau chiêu (0.2s)
         yield return new WaitForSeconds(0.2f);
     }
 
@@ -586,11 +672,10 @@ public class BossBehavior : BaseStats
     {
         yield return new WaitForSeconds(skill3Cooldown);
         isSkill3Ready = true;
-        Debug.Log($"[{entityName}] Skill 3 (Bất Tử) ĐÃ SẴN SÀNG LẠI!");
+        skill3CooldownCoroutine = null;
     }
 
-
-    // ... (Logic Di Chuyển/Patrol giữ nguyên) ...
+    // ... (Logic Di Chuyển/Patrol và Gizmos giữ nguyên) ...
     void ChaseTargetWithWaypointLimit()
     {
         Vector2 currentPos = transform.position;
@@ -674,14 +759,15 @@ public class BossBehavior : BaseStats
         }
     }
 
+
+    // ⭐ HÀM TAKE DAMAGE ĐÃ CẬP NHẬT ⭐
     public override void TakeDamage(float damage)
     {
         if (isDead) return;
 
-        // ⭐ KIỂM TRA BẤT TỬ ⭐
+        // 1. KIỂM TRA BẤT TỬ
         if (isInvulnerable)
         {
-            Debug.Log($"[{entityName}] Đang trong trạng thái BẤT TỬ! Không mất máu.");
             if (anim) anim.SetTrigger("Hit");
             return;
         }
@@ -689,37 +775,35 @@ public class BossBehavior : BaseStats
         base.TakeDamage(damage);
         if (anim) anim.SetTrigger("Hit");
 
-        if (isAttacking || isUsingSkill || isCastingSkill3)
+        // 2. LOGIC NGẮT ĐÒN ĐÁNH THƯỜNG
+        if (isAttacking)
         {
-            // Nếu Boss bị ngắt skill, hủy tất cả Coroutine và reset các cờ
-            if (isUsingSkill || isCastingSkill3)
+            if (attackCoroutine != null)
             {
-                if (explosionInstance != null) { Destroy(explosionInstance); explosionInstance = null; }
-                if (castEffectInstance != null) { Destroy(castEffectInstance); castEffectInstance = null; }
-                // KHÔNG hủy invulnEffectInstance nếu đang Bất tử vì có thể bị ngắt trong lúc Bất tử
-                // Tuy nhiên, logic hiện tại cho phép nó chạy đến hết cooldown. Để an toàn, chỉ hủy khi không phải trạng thái Invulnerable.
-                if (invulnEffectInstance != null && !isInvulnerable) { Destroy(invulnEffectInstance); invulnEffectInstance = null; }
+                StopCoroutine(attackCoroutine);
+                attackCoroutine = null;
             }
 
-            // Hủy tất cả Coroutine đang chạy, bao gồm Skill3Routine nếu nó đang chạy
-            StopAllCoroutines();
-
-            // Đảm bảo trạng thái Skill 3 được reset hoàn toàn
-            isInvulnerable = false; // Hủy trạng thái bất tử
-            isCastingSkill3 = false;
-            if (invulnEffectInstance != null) { Destroy(invulnEffectInstance); invulnEffectInstance = null; } // Hủy hiệu ứng
-
-            // Reset trạng thái các skill khác
             isAttacking = false;
-            isUsingSkill = false;
-            attackCoroutine = null;
+            canDealDamage = false;
+            hitPlayers.Clear();
+            if (attackCollider != null)
+            {
+                attackCollider.enabled = false;
+            }
+        }
 
-            isSkill1Ready = true;
-            isSkill2Ready = true;
-            isSkill3Ready = true; // Cho phép dùng lại ngay nếu bị ngắt
+        // ⭐ 3. XỬ LÝ BIẾN ĐẾM VÀ KÍCH HOẠT COUNTER ATTACK ⭐
+        // Bỏ qua việc đếm hit nếu đang trong giai đoạn khóa WindUp!
+        if (!isCounterAttacking && !isUsingSkill && !isCastingSkill3 && !isCounterAttackWindUp)
+        {
+            currentHitCounter++;
 
-            if (attackCollider != null) attackCollider.enabled = false;
-            Debug.Log($"[{entityName}] Bị đánh trúng! Reset trạng thái tấn công/skill.");
+            if (currentHitCounter >= hitsForCounterAttack)
+            {
+                currentHitCounter = 0;
+                StartCounterAttack();
+            }
         }
 
         if (isDead)
@@ -734,10 +818,6 @@ public class BossBehavior : BaseStats
             manager.EnemyDied();
             managerNotified = true;
         }
-        else if (managerNotified)
-        {
-            Debug.LogWarning($"⚠️ Hàm Die được gọi lần nữa, nhưng đã bảo vệ Manager!");
-        }
 
         if (explosionInstance != null) { Destroy(explosionInstance); }
         if (invulnEffectInstance != null) { Destroy(invulnEffectInstance); }
@@ -745,7 +825,17 @@ public class BossBehavior : BaseStats
 
         if (anim) anim.SetTrigger("Dead");
         StopAllCoroutines();
-        Destroy(gameObject, 2.5f);
+
+        StartCoroutine(DeathSequence());
+    }
+
+    private IEnumerator DeathSequence()
+    {
+        yield return new WaitForSeconds(deathWaitTime);
+
+        Destroy(gameObject);
+
+        SceneManager.LoadScene(cutsceneSceneName);
     }
 
     private void OnDrawGizmos()
@@ -784,25 +874,6 @@ public class BossBehavior : BaseStats
             Vector3 limitRight = waypointPos3D + Vector3.right * maxDistanceFromWaypointX;
             Gizmos.DrawLine(limitLeft + Vector3.up * 10f, limitLeft + Vector3.down * 10f);
             Gizmos.DrawLine(limitRight + Vector3.up * 10f, limitRight + Vector3.down * 10f);
-        }
-        if (!isChasing && !isWaiting && !isGuardBound)
-        {
-            Gizmos.color = Color.cyan;
-            Vector2 pointA = patrolCenter + Vector2.right * patrolRange;
-            Vector2 pointB = patrolCenter - Vector2.right * patrolRange;
-            Gizmos.DrawLine(pointA, pointB);
-            Gizmos.DrawWireSphere(pointA, 0.2f);
-            Gizmos.DrawWireSphere(pointB, 0.2f);
-        }
-        if (isChasing && currentLimitWaypoint != null)
-        {
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(currentLimitWaypoint.Position, 0.5f);
-            if (fallbackPatrolPoint != null && currentLimitWaypoint != fallbackPatrolPoint)
-            {
-                Gizmos.color = Color.green;
-                Gizmos.DrawWireSphere(fallbackPatrolPoint.Position, 0.4f);
-            }
         }
     }
 }
