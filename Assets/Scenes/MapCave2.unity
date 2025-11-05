@@ -590,13 +590,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 110790525938285359, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
+      propertyPath: windBlastCooldown
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 110790525938285359, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
+      propertyPath: crossBlastCooldown
+      value: 8
+      objectReference: {fileID: 0}
     - target: {fileID: 2914897347311087799, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
       propertyPath: maxHP
-      value: 10000
+      value: 100
       objectReference: {fileID: 0}
     - target: {fileID: 2914897347311087799, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
       propertyPath: currentHP
-      value: 10000
+      value: 100
       objectReference: {fileID: 0}
     - target: {fileID: 4827570468991191727, guid: 6442dd28a0353434ab3c93af0e6f4283, type: 3}
       propertyPath: m_Layer
