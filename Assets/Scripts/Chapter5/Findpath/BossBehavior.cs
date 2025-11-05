@@ -10,24 +10,61 @@ public class BossBehavior : BaseStats
 
     [Header("References")]
     public WaypointGraph graph;
-    public Transform target; // Vẫn dùng target gán từ ngoài
+    public Transform target;
     private Rigidbody2D rb;
     private Animator anim;
 
+    [Header("Skill Points")]
+    public Transform skill2SpawnPoint; // Kéo GameObject con (Child) vào đây
+
+    [Header("Skill Prefabs")]
+    public GameObject lightningPillarPrefab; // Skill 1
+    public GameObject explosionAreaPrefab; // Skill 2
+
+    // ⭐ SKILL 3: BẤT TỬ (ĐÃ SỬA LỖI HỒI CHIÊU VÀ CAST) ⭐
+    [Header("Skill 3 (Invulnerability)")]
+    public GameObject skill3CastPrefab;
+    public GameObject invulnerabilityEffectPrefab;
+    public float skill3MinHealthPercentage = 0.6f;
+    public float skill3Duration = 4f;
+    public float skill3Cooldown = 30f;
+    private bool isSkill3Ready = true;
+    private bool isInvulnerable = false; // Trạng thái bất tử (MIỄN NHIỄM SÁT THƯƠNG)
+    private GameObject invulnEffectInstance;
+    private GameObject castEffectInstance;
+    private bool isCastingSkill3 = false; // Chỉ True trong 0.8s Cast ban đầu
+
+    // ... (Movement Settings) ...
     [Header("Movement Settings")]
     public float chaseSpeed = 3.5f;
     public float patrolSpeed = 1.2f;
-    // ❌ XÓA: public float detectionRadius = 6f; 
-    // ⭐ THAY BẰNG: Kích thước vùng phát hiện hình chữ nhật
-    public Vector2 detectionBoxSize = new Vector2(12f, 4f); // (Width, Height) - Ví dụ: Rộng 12, Cao 4
-
+    public Vector2 detectionBoxSize = new Vector2(12f, 4f);
     public float waypointTolerance = 0.5f;
 
-    // ... (Giữ nguyên các biến Attack, Waypath Limit, Endpoint Wait, Patrol) ...
+    // ... (Attack Settings) ...
     [Header("Attack Settings")]
     public float attackRange = 1.5f;
     public Collider2D attackCollider;
     public float knockbackForce = 3f;
+
+    [Header("Skill Settings")]
+    // Skill 1 (Cột Sét)
+    public float skill1Cooldown = 5f;
+    public float skill1Range = 10f;
+    private bool isSkill1Ready = true;
+
+    // Skill 2 (Vòng Xoáy Năng Lượng)
+    public float skill2Cooldown = 8f;
+    public float skill2Range = 3f;
+    private bool isSkill2Ready = true;
+
+    private bool isUsingSkill = false; // Dùng cho Skill 1 và Skill 2
+    private LayerMask playerLayerMask;
+
+    private GameObject explosionInstance;
+    private const float Skill2ActiveDuration = 1.0f;
+
+    // ... (Các biến private khác không đổi) ...
     [Header("Waypath Limit")]
     public float maxDistanceFromWaypointX = 1.5f;
     [Header("Endpoint Wait")]
@@ -35,7 +72,7 @@ public class BossBehavior : BaseStats
     [Header("Patrol Settings")]
     public float patrolRange = 2f;
     private bool isChasing = false;
-    private bool facingRight = true; // Sẽ dùng để xác định hướng của detection box
+    private bool facingRight = true;
     private bool isWaiting = false;
     private Coroutine waitCoroutine;
     private bool isGuardBound = false;
@@ -48,10 +85,13 @@ public class BossBehavior : BaseStats
     private Vector2 patrolCenter;
     private int patrolDirection = 1;
 
-
     private BossRoomManager manager;
+    private bool managerNotified = false;
 
-    // ... (Giữ nguyên Awake, InitializePatrolCenter, FindFallbackPatrolWaypoint) ...
+    //------------------------------------------
+    // UNITY LIFECYCLE VÀ SETUP
+    //------------------------------------------
+
     protected override void Awake()
     {
         base.Awake();
@@ -60,6 +100,8 @@ public class BossBehavior : BaseStats
         InitializePatrolCenter((Vector2)transform.position);
         if (attackCollider != null)
             attackCollider.enabled = false;
+
+        playerLayerMask = 1 << LayerMask.NameToLayer("Player");
     }
 
     void Start()
@@ -71,11 +113,13 @@ public class BossBehavior : BaseStats
             Debug.Log($"[{entityName}] đã đăng ký với Boss Room Manager. Tổng quái hiện tại: {manager.enemiesRemaining}");
         }
     }
+
     void InitializePatrolCenter(Vector2 position)
     {
         patrolCenter = position;
         patrolDirection = (Random.value > 0.5f) ? 1 : -1;
     }
+
     Waypoint FindFallbackPatrolWaypoint(Vector2 currentPosition)
     {
         Waypoint nearest = graph.GetClosestWaypoint(currentPosition);
@@ -91,21 +135,39 @@ public class BossBehavior : BaseStats
         return nearest;
     }
 
-    // ... (Giữ nguyên StopWaitAndBeginChase, StopWaitAndBeginPatrol) ...
     void StopWaitAndBeginChase()
     {
         if (attackCoroutine != null) StopCoroutine(attackCoroutine);
         isAttacking = false;
+
+        if (!isInvulnerable && !isCastingSkill3) StopAllCoroutines();
+
+        isUsingSkill = false;
+        isCastingSkill3 = false;
+
+        isSkill1Ready = true;
+        isSkill2Ready = true;
+
         if (waitCoroutine != null) StopCoroutine(waitCoroutine);
         isWaiting = false;
         isChasing = true;
         isGuardBound = false;
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
     }
+
     void StopWaitAndBeginPatrol()
     {
         if (attackCoroutine != null) StopCoroutine(attackCoroutine);
         isAttacking = false;
+
+        if (!isInvulnerable && !isCastingSkill3) StopAllCoroutines();
+
+        isUsingSkill = false;
+        isCastingSkill3 = false;
+
+        isSkill1Ready = true;
+        isSkill2Ready = true;
+
         if (waitCoroutine != null) StopCoroutine(waitCoroutine);
         isWaiting = false;
         isChasing = false;
@@ -123,37 +185,73 @@ public class BossBehavior : BaseStats
         }
     }
 
-    // ⭐ SỬA HÀM UPDATE ⭐
+
     private void Update()
     {
-        if (isDead || isAttacking)
+        // 1. NGĂN CHẶN NẾU ĐANG CHẾT/TẤN CÔNG/DÙNG SKILL CAST
+        // Lưu ý: isInvulnerable (Bất tử) KHÔNG chặn hành động, chỉ isCastingSkill3 (Tụ chiêu) chặn
+        if (isDead || isAttacking || isCastingSkill3)
         {
             rb.velocity = Vector2.zero;
-            if (!isAttacking)
+            if (!isAttacking && !isCastingSkill3)
                 if (anim) anim.SetFloat("Speed", 0);
-            if (isAttacking && target)
+            if ((isAttacking || isCastingSkill3) && target)
                 RotateToDirection(target.position.x - transform.position.x);
             return;
         }
 
-        if (target == null || graph == null) // Nếu không có target thì tuần tra
+        // ⭐ 2. KIỂM TRA LOGIC SKILL 3 (ƯU TIÊN HÀNG ĐẦU) ⭐
+        if (currentHP / maxHP <= skill3MinHealthPercentage && isSkill3Ready)
+        {
+            Debug.Log($"[{entityName}] Kích hoạt Skill 3 do máu thấp và đã sẵn sàng lại!");
+            rb.velocity = Vector2.zero;
+            if (anim) anim.SetFloat("Speed", 0);
+            UseSkill3();
+            return;
+        }
+
+        if (target == null || graph == null)
         {
             if (isGuardBound) StopWaitAndBeginPatrol();
             rb.velocity = Vector2.zero;
             if (anim) anim.SetFloat("Speed", 0);
-            Patrol(); // Thêm dòng này để bắt đầu tuần tra nếu target là null
+            Patrol();
             return;
         }
 
-        // --- Kiểm tra Player trong vùng chữ nhật ---
         bool playerInDetectionBox = IsPlayerInDetectionBox();
 
-        // --- Logic Chase/Patrol dựa trên vùng chữ nhật ---
         if (playerInDetectionBox)
         {
-            float distanceToPlayer = Vector2.Distance(transform.position, target.position); // Vẫn cần distance để check Attack Range
+            float distanceToPlayer = Vector2.Distance(transform.position, target.position);
 
-            // LOGIC TẤN CÔNG (nếu đủ gần)
+            if (!isChasing)
+            {
+                StopWaitAndBeginChase();
+                fallbackPatrolPoint = FindFallbackPatrolWaypoint(transform.position);
+            }
+
+            // ⭐ 3. LOGIC SKILL 2 (ƯU TIÊN 2) ⭐
+            // Boss có thể dùng S1/S2 khi đang BẤT TỬ (isInvulnerable=true), vì isUsingSkill chỉ ngăn S1/S2 chồng chéo.
+            if (!isUsingSkill && isSkill2Ready && distanceToPlayer <= skill2Range)
+            {
+                rb.velocity = Vector2.zero;
+                if (anim) anim.SetFloat("Speed", 0);
+                UseSkill2();
+                return;
+            }
+
+            // ⭐ 4. LOGIC SKILL 1 (ƯU TIÊN 3) ⭐
+            if (!isUsingSkill && isSkill1Ready && distanceToPlayer <= skill1Range)
+            {
+                rb.velocity = Vector2.zero;
+                if (anim) anim.SetFloat("Speed", 0);
+                UseSkill1();
+                return;
+            }
+
+
+            // ⭐ 5. LOGIC TẤN CÔNG THƯỜNG (ƯU TIÊN 4) ⭐
             if (isChasing && distanceToPlayer <= attackRange)
             {
                 rb.velocity = Vector2.zero;
@@ -162,17 +260,11 @@ public class BossBehavior : BaseStats
                 return;
             }
 
-            // LOGIC ĐUỔI THEO (nếu trong vùng detected nhưng ngoài tầm đánh)
-            if (!isChasing)
-            {
-                StopWaitAndBeginChase();
-                fallbackPatrolPoint = FindFallbackPatrolWaypoint(transform.position);
-            }
+            // ⭐ 6. LOGIC ĐUỔI THEO (ƯU TIÊN 5) ⭐
             ChaseTargetWithWaypointLimit();
         }
         else // Player nằm ngoài vùng chữ nhật
         {
-            // Quay về tuần tra nếu đang đuổi hoặc canh gác
             if (isChasing || isWaiting || isGuardBound)
             {
                 StopWaitAndBeginPatrol();
@@ -181,26 +273,21 @@ public class BossBehavior : BaseStats
         }
     }
 
-    // ⭐ HÀM MỚI: Kiểm tra Player có trong hình chữ nhật không ⭐
     private bool IsPlayerInDetectionBox()
     {
         if (target == null) return false;
 
         Vector2 enemyPos = transform.position;
         Vector2 playerPos = target.position;
-        Vector2 relativePos = playerPos - enemyPos;
 
         float halfWidth = detectionBoxSize.x / 2f;
         float halfHeight = detectionBoxSize.y / 2f;
 
-        // Tính toán biên của hình chữ nhật (dựa vào hướng của Enemy)
-        // Đơn giản hóa: Coi hình chữ nhật luôn đối xứng quanh Enemy
         float minX = enemyPos.x - halfWidth;
         float maxX = enemyPos.x + halfWidth;
         float minY = enemyPos.y - halfHeight;
         float maxY = enemyPos.y + halfHeight;
 
-        // Kiểm tra xem vị trí Player có nằm trong các biên này không
         bool withinX = playerPos.x >= minX && playerPos.x <= maxX;
         bool withinY = playerPos.y >= minY && playerPos.y <= maxY;
 
@@ -208,12 +295,12 @@ public class BossBehavior : BaseStats
     }
 
 
-    // ... (Giữ nguyên StartAttack, AttackRoutine, Logic Tấn công Trigger) ...
     void StartAttack()
     {
         if (isAttacking) return;
         attackCoroutine = StartCoroutine(AttackRoutine());
     }
+
     private IEnumerator AttackRoutine()
     {
         isAttacking = true;
@@ -222,10 +309,22 @@ public class BossBehavior : BaseStats
         if (target != null)
             RotateToDirection(target.position.x - transform.position.x);
         if (anim) anim.SetTrigger("Attack");
-        yield return new WaitForSeconds(attackCooldown);
+
+        yield return new WaitForSeconds(0.1f);
+        if (attackCollider != null) attackCollider.enabled = true;
+        canDealDamage = true;
+        hitPlayers.Clear();
+
+        yield return new WaitForSeconds(0.2f);
+        if (attackCollider != null) attackCollider.enabled = false;
+        canDealDamage = false;
+
+        yield return new WaitForSeconds(attackCooldown - 0.3f);
+
         isAttacking = false;
         attackCoroutine = null;
     }
+
     public void HandleAnimation_EnableAttackCollider()
     {
         if (attackCollider == null) return;
@@ -278,7 +377,220 @@ public class BossBehavior : BaseStats
     public void HandleAnimation_TriggerTakeDamage(float damage) { TakeDamage(damage); }
 
 
-    // ... (Giữ nguyên ChaseTargetWithWaypointLimit, Patrol, MoveTowards, RotateToDirection) ...
+    // --- LOGIC SKILL CỘT SÉT (SKILL 1) ---
+
+    void UseSkill1()
+    {
+        if (isUsingSkill || !isSkill1Ready) return;
+        if (lightningPillarPrefab == null)
+        {
+            Debug.LogError("Lightning Pillar Prefab chưa được gán!");
+            return;
+        }
+
+        isUsingSkill = true;
+        isSkill1Ready = false;
+
+        if (target != null)
+            RotateToDirection(target.position.x - transform.position.x);
+
+        if (anim) anim.SetTrigger("Skill1");
+
+        StartCoroutine(Skill1Routine());
+        StartCoroutine(Skill1CooldownRoutine());
+    }
+
+    private IEnumerator Skill1Routine()
+    {
+        rb.velocity = Vector2.zero;
+
+        yield return new WaitForSeconds(0.3f);
+
+        if (target != null)
+        {
+            Vector3 pillarPosition = target.position;
+            GameObject pillar = Instantiate(lightningPillarPrefab, pillarPosition, Quaternion.identity);
+            var pillarScript = pillar.GetComponent<LightningPillarBehavior>();
+            if (pillarScript != null)
+            {
+                pillarScript.targetLayer = LayerMask.NameToLayer("Player");
+            }
+        }
+
+        yield return new WaitForSeconds(0.7f);
+        isUsingSkill = false;
+    }
+
+    private IEnumerator Skill1CooldownRoutine()
+    {
+        yield return new WaitForSeconds(skill1Cooldown);
+        isSkill1Ready = true;
+        Debug.Log($"[{entityName}] Skill 1 (Cột Sét) đã sẵn sàng!");
+    }
+
+
+    // --- LOGIC SKILL VÒNG XOÁY (SKILL 2) ---
+
+    void UseSkill2()
+    {
+        if (isUsingSkill || !isSkill2Ready) return;
+        if (explosionAreaPrefab == null)
+        {
+            Debug.LogError("Explosion Area Prefab chưa được gán!");
+            return;
+        }
+
+        isUsingSkill = true;
+        isSkill2Ready = false;
+
+        if (target != null)
+            RotateToDirection(target.position.x - transform.position.x);
+
+        if (anim) anim.SetTrigger("Skill2");
+
+        StartCoroutine(Skill2Routine());
+        StartCoroutine(Skill2CooldownRoutine());
+    }
+
+    private IEnumerator Skill2Routine()
+    {
+        rb.velocity = Vector2.zero;
+
+        yield return new WaitForSeconds(0.7f);
+
+        if (skill2SpawnPoint == null)
+        {
+            Debug.LogError("Skill 2 Spawn Point chưa được gán! Không thể tạo vòng xoáy.");
+            isUsingSkill = false;
+            yield break;
+        }
+
+        explosionInstance = Instantiate(explosionAreaPrefab, skill2SpawnPoint.position, Quaternion.identity);
+
+        explosionInstance.transform.SetParent(skill2SpawnPoint);
+        explosionInstance.transform.localPosition = Vector3.zero;
+
+        var explosionScript = explosionInstance.GetComponent<BossExplosionBehavior>();
+        if (explosionScript != null)
+        {
+            explosionScript.targetLayer = playerLayerMask;
+        }
+
+        yield return new WaitForSeconds(Skill2ActiveDuration);
+
+        if (explosionInstance != null)
+        {
+            Destroy(explosionInstance);
+            explosionInstance = null;
+        }
+
+        yield return new WaitForSeconds(0.6f);
+
+        isUsingSkill = false;
+    }
+
+    private IEnumerator Skill2CooldownRoutine()
+    {
+        yield return new WaitForSeconds(skill2Cooldown);
+        isSkill2Ready = true;
+        Debug.Log($"[{entityName}] Skill 2 (Vòng Xoáy Năng Lượng) đã sẵn sàng!");
+    }
+
+
+    // --- LOGIC SKILL BẤT TỬ (SKILL 3) ---
+
+    void UseSkill3()
+    {
+        if (!isSkill3Ready) return;
+
+        isSkill3Ready = false;
+        isCastingSkill3 = true;
+
+        // ⭐ BẬT BẤT TỬ NGAY LẬP TỨC
+        isInvulnerable = true;
+
+        if (anim) anim.SetTrigger("Skill3");
+
+        if (target != null)
+            RotateToDirection(target.position.x - transform.position.x);
+
+        // ⭐ TẠO HIỆU ỨNG BẤT TỬ NGAY LẬP TỨC
+        if (invulnerabilityEffectPrefab != null && invulnEffectInstance == null)
+        {
+            invulnEffectInstance = Instantiate(invulnerabilityEffectPrefab, transform.position, Quaternion.identity);
+            invulnEffectInstance.transform.SetParent(transform);
+            invulnEffectInstance.transform.localPosition = Vector3.zero;
+            Debug.Log($"[{entityName}] KÍCH HOẠT BẤT TỬ ngay khi bắt đầu cast!");
+        }
+
+        StartCoroutine(Skill3Routine());
+        StartCoroutine(Skill3CooldownRoutine());
+    }
+
+    private IEnumerator Skill3Routine()
+    {
+        rb.velocity = Vector2.zero;
+        float castDuration = 0.8f;
+
+        // 1. TRIỆU HỒI HIỆU ỨNG CAST (THI TRIỂN)
+        if (skill3CastPrefab != null)
+        {
+            castEffectInstance = Instantiate(skill3CastPrefab, transform.position, Quaternion.identity);
+            castEffectInstance.transform.SetParent(transform);
+            castEffectInstance.transform.localPosition = Vector3.zero;
+        }
+
+        // Chờ thời gian cast
+        yield return new WaitForSeconds(castDuration);
+
+        // 2. KẾT THÚC CAST VÀ DUY TRÌ BẤT TỬ (Bất tử đã bật ở UseSkill3)
+        if (castEffectInstance != null)
+        {
+            Destroy(castEffectInstance);
+            castEffectInstance = null;
+        }
+
+        isCastingSkill3 = false; // Boss có thể di chuyển/dùng skill khác
+
+        // 3. Giữ Bất tử tồn tại (thời gian còn lại = tổng thời gian - thời gian cast)
+        // Nếu skill3Duration > castDuration
+        float activeDuration = skill3Duration - castDuration;
+        if (activeDuration > 0)
+        {
+            yield return new WaitForSeconds(activeDuration);
+        }
+
+        // Nếu không, chỉ cần chờ 0.2s phục hồi
+        else if (skill3Duration <= castDuration)
+        {
+            // Nếu thời gian Bất tử quá ngắn, ta hủy luôn hiệu ứng cast
+            Debug.LogWarning($"[{entityName}] Skill3 Duration ({skill3Duration}s) ngắn hơn Cast Duration ({castDuration}s). Vui lòng đặt Duration lớn hơn Cast!");
+        }
+
+
+        // 4. Kết thúc Bất tử và hủy hiệu ứng
+        isInvulnerable = false;
+        Debug.Log($"[{entityName}] HỦY BẤT TỬ.");
+
+        if (invulnEffectInstance != null)
+        {
+            Destroy(invulnEffectInstance);
+            invulnEffectInstance = null;
+        }
+
+        // 5. Giai đoạn phục hồi sau chiêu (0.2s)
+        yield return new WaitForSeconds(0.2f);
+    }
+
+    private IEnumerator Skill3CooldownRoutine()
+    {
+        yield return new WaitForSeconds(skill3Cooldown);
+        isSkill3Ready = true;
+        Debug.Log($"[{entityName}] Skill 3 (Bất Tử) ĐÃ SẴN SÀNG LẠI!");
+    }
+
+
+    // ... (Logic Di Chuyển/Patrol giữ nguyên) ...
     void ChaseTargetWithWaypointLimit()
     {
         Vector2 currentPos = transform.position;
@@ -362,24 +674,57 @@ public class BossBehavior : BaseStats
         }
     }
 
-    // ... (Giữ nguyên TakeDamage, Die) ...
     public override void TakeDamage(float damage)
     {
         if (isDead) return;
+
+        // ⭐ KIỂM TRA BẤT TỬ ⭐
+        if (isInvulnerable)
+        {
+            Debug.Log($"[{entityName}] Đang trong trạng thái BẤT TỬ! Không mất máu.");
+            if (anim) anim.SetTrigger("Hit");
+            return;
+        }
+
         base.TakeDamage(damage);
         if (anim) anim.SetTrigger("Hit");
-        if (isAttacking)
+
+        if (isAttacking || isUsingSkill || isCastingSkill3)
         {
+            // Nếu Boss bị ngắt skill, hủy tất cả Coroutine và reset các cờ
+            if (isUsingSkill || isCastingSkill3)
+            {
+                if (explosionInstance != null) { Destroy(explosionInstance); explosionInstance = null; }
+                if (castEffectInstance != null) { Destroy(castEffectInstance); castEffectInstance = null; }
+                // KHÔNG hủy invulnEffectInstance nếu đang Bất tử vì có thể bị ngắt trong lúc Bất tử
+                // Tuy nhiên, logic hiện tại cho phép nó chạy đến hết cooldown. Để an toàn, chỉ hủy khi không phải trạng thái Invulnerable.
+                if (invulnEffectInstance != null && !isInvulnerable) { Destroy(invulnEffectInstance); invulnEffectInstance = null; }
+            }
+
+            // Hủy tất cả Coroutine đang chạy, bao gồm Skill3Routine nếu nó đang chạy
             StopAllCoroutines();
+
+            // Đảm bảo trạng thái Skill 3 được reset hoàn toàn
+            isInvulnerable = false; // Hủy trạng thái bất tử
+            isCastingSkill3 = false;
+            if (invulnEffectInstance != null) { Destroy(invulnEffectInstance); invulnEffectInstance = null; } // Hủy hiệu ứng
+
+            // Reset trạng thái các skill khác
             isAttacking = false;
+            isUsingSkill = false;
             attackCoroutine = null;
+
+            isSkill1Ready = true;
+            isSkill2Ready = true;
+            isSkill3Ready = true; // Cho phép dùng lại ngay nếu bị ngắt
+
             if (attackCollider != null) attackCollider.enabled = false;
+            Debug.Log($"[{entityName}] Bị đánh trúng! Reset trạng thái tấn công/skill.");
         }
+
         if (isDead)
             Die();
     }
-
-    private bool managerNotified = false;
 
     protected override void Die()
     {
@@ -387,27 +732,29 @@ public class BossBehavior : BaseStats
         if (manager != null && !managerNotified)
         {
             manager.EnemyDied();
-            managerNotified = true; // Đánh dấu đã thông báo
-            Debug.Log($"✅ Manager ĐÃ được thông báo thành công!");
+            managerNotified = true;
         }
         else if (managerNotified)
         {
             Debug.LogWarning($"⚠️ Hàm Die được gọi lần nữa, nhưng đã bảo vệ Manager!");
         }
 
+        if (explosionInstance != null) { Destroy(explosionInstance); }
+        if (invulnEffectInstance != null) { Destroy(invulnEffectInstance); }
+        if (castEffectInstance != null) { Destroy(castEffectInstance); }
+
         if (anim) anim.SetTrigger("Dead");
         StopAllCoroutines();
         Destroy(gameObject, 2.5f);
     }
 
-    // ⭐ SỬA HÀM ONDRAWGIZMOS ⭐
     private void OnDrawGizmos()
     {
         // Vẽ vùng phát hiện hình chữ nhật
         Gizmos.color = (target != null && IsPlayerInDetectionBox()) ? new Color(1f, 0f, 0f, 0.25f) : new Color(0f, 1f, 0f, 0.25f);
-        Vector3 boxCenter = transform.position; // Đặt tâm ở vị trí Enemy
-        Vector3 boxSize = new Vector3(detectionBoxSize.x, detectionBoxSize.y, 0.1f); // Kích thước từ biến
-        Gizmos.DrawWireCube(boxCenter, boxSize); // Vẽ hình hộp
+        Vector3 boxCenter = transform.position;
+        Vector3 boxSize = new Vector3(detectionBoxSize.x, detectionBoxSize.y, 0.1f);
+        Gizmos.DrawWireCube(boxCenter, boxSize);
 
         // Giữ nguyên Gizmos cho Attack Collider, Waypoint Limit, Patrol Range
         if (attackCollider != null)
@@ -415,6 +762,20 @@ public class BossBehavior : BaseStats
             Gizmos.color = attackCollider.enabled ? new Color(1, 0, 0, 0.5f) : new Color(0, 1, 0, 0.2f);
             Gizmos.DrawWireCube(attackCollider.bounds.center, attackCollider.bounds.size);
         }
+
+        // ⭐ VẼ PHẠM VI SKILL 1 (TẦM DÙNG CHIÊU) ⭐
+        Gizmos.color = new Color(0f, 0.5f, 1f, 0.25f);
+        Gizmos.DrawWireSphere(transform.position, skill1Range);
+
+        // ⭐ VẼ PHẠM VI SKILL 2 ⭐
+        // Vòng tròn TẦM DÙNG chiêu (skill2Range)
+        Gizmos.color = new Color(1f, 0.5f, 1f, 0.25f);
+        Gizmos.DrawWireSphere(transform.position, skill2Range);
+
+        // Vòng tròn PHẠM VI NỔ (Giả định giá trị 2.5f cố định từ Prefab)
+        Gizmos.color = new Color(1f, 0f, 1f, 0.7f);
+        Gizmos.DrawWireSphere(transform.position, 2.5f);
+
         if (currentLimitWaypoint != null)
         {
             Vector3 waypointPos3D = currentLimitWaypoint.Position;
@@ -437,8 +798,6 @@ public class BossBehavior : BaseStats
         {
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(currentLimitWaypoint.Position, 0.5f);
-            // Có thể bỏ dòng kẻ tới target nếu không cần thiết
-            // Gizmos.DrawLine(transform.position, target.position); 
             if (fallbackPatrolPoint != null && currentLimitWaypoint != fallbackPatrolPoint)
             {
                 Gizmos.color = Color.green;
