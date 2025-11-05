@@ -1,19 +1,19 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System;
 using System.Collections;
 
-public class BossStats : MonoBehaviour
+public class DemonStats : MonoBehaviour
 {
-    [SerializeField] private BossStatus bossStatus;
-    [SerializeField] private bool autoPullFromBoss = true;
+    [SerializeField] private DemonStatus demonStatus;  // Script chứa thông tin gốc (VD: currentHP, maxHP)
+    [SerializeField] private bool autoPullFromDemon = true;
     [SerializeField] private float pullInterval = 0.05f;
 
-    [SerializeField] private int maxHealth = 200;
+    [SerializeField] private int maxHealth = 150;
     [SerializeField] private int currentHealth;
     [SerializeField] private bool isDead = false;
 
     public event Action<int, int> OnHealthChanged;
-    public event Action OnBossDied;
+    public event Action OnDemonDied;
 
     public int MaxHealth => maxHealth;
     public int CurrentHealth => currentHealth;
@@ -23,13 +23,13 @@ public class BossStats : MonoBehaviour
 
     void Awake()
     {
-        if (!bossStatus) bossStatus = GetComponent<BossStatus>();
+        if (!demonStatus) demonStatus = GetComponent<DemonStatus>();
 
-        if (bossStatus)
+        if (demonStatus)
         {
-            maxHealth = Mathf.RoundToInt(bossStatus.maxHealth);
-            currentHealth = Mathf.Clamp(Mathf.RoundToInt(bossStatus.currentHealth), 0, maxHealth);
-            isDead = bossStatus.isDead;
+            maxHealth = Mathf.RoundToInt(demonStatus.maxHealth);
+            currentHealth = Mathf.Clamp(Mathf.RoundToInt(demonStatus.currentHealth), 0, maxHealth);
+            isDead = demonStatus.isDead;
         }
 
         _lastCur = currentHealth;
@@ -40,28 +40,28 @@ public class BossStats : MonoBehaviour
     {
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
-        if (autoPullFromBoss && bossStatus)
-            StartCoroutine(CoPullFromBoss());
+        if (autoPullFromDemon && demonStatus)
+            StartCoroutine(CoPullFromDemon());
     }
 
-    public void UpdateFromBoss()
+    public void UpdateFromDemon()
     {
-        if (!bossStatus) return;
+        if (!demonStatus) return;
 
-        int newMax = Mathf.RoundToInt(bossStatus.maxHealth);
-        int newCur = Mathf.Clamp(Mathf.RoundToInt(bossStatus.currentHealth), 0, newMax);
+        int newMax = Mathf.RoundToInt(demonStatus.maxHealth);
+        int newCur = Mathf.Clamp(Mathf.RoundToInt(demonStatus.currentHealth), 0, newMax);
 
         bool changed = (newCur != currentHealth) || (newMax != maxHealth);
 
         maxHealth = newMax;
         currentHealth = newCur;
-        isDead = bossStatus.isDead;
+        isDead = demonStatus.isDead;
 
         if (changed)
             RaiseHealthChanged();
 
         if (isDead)
-            OnBossDied?.Invoke();
+            OnDemonDied?.Invoke();
     }
 
     public void SetHealthForUI(int current, int max)
@@ -71,13 +71,13 @@ public class BossStats : MonoBehaviour
         RaiseHealthChanged();
     }
 
-    private IEnumerator CoPullFromBoss()
+    private IEnumerator CoPullFromDemon()
     {
         var wait = new WaitForSeconds(pullInterval);
         while (true)
         {
-            if (bossStatus)
-                UpdateFromBoss();
+            if (demonStatus)
+                UpdateFromDemon();
 
             yield return wait;
         }

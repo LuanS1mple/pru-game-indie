@@ -9,7 +9,7 @@ public class BossStatus : MonoBehaviour
 
     [Header("Thông số cơ bản")]
     public string bossName = "Boss";
-    public float maxHealth = 500f;
+    public float maxHealth = 200f;
     public float currentHealth;
 
     [Header("Trạng thái chiến đấu")]

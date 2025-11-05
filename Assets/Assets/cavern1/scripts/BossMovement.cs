@@ -24,7 +24,6 @@ public class BossMovement : MonoBehaviour
 
     [Header("Jump Attack")]
     public GameObject jumpAttack;   // object con có script BossGroundAOE
-    public Transform jumpPoint;     // vị trí spawn AOE (tùy chọn)
 
     void Start()
     {
@@ -110,7 +109,7 @@ public class BossMovement : MonoBehaviour
                 animator.Play("BossJump");
                 yield return new WaitForSeconds(0.3f);
                 Jump();
-                // Chờ Boss chạm đất (OnCollisionEnter2D sẽ kích hoạt AOE)
+                // Chờ Boss chạm đất (OnCollisionEnter2D sẽ tắt collider)
                 yield return new WaitUntil(() => isGrounded && !isJumping);
                 animator.Play("BossAttack");
                 yield return new WaitForSeconds(1f);
@@ -150,30 +149,35 @@ public class BossMovement : MonoBehaviour
             isGrounded = false;
             isJumping = true;
 
-            Debug.Log("🦘 Boss nhảy lên phía trên Player!");
+            // Bật AOE collider khi nhảy
+            if (jumpAttack != null)
+            {
+                var aoe = jumpAttack.GetComponent<BossGroundAOE>();
+                if (aoe != null)
+                    aoe.ActivateAOE();
+            }
+
+            Debug.Log("🦘 Boss nhảy → AOE collider bật");
         }
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.gameObject.CompareTag("Ground"))
+        if (collision.gameObject.CompareTag("Ground") && !isGrounded)
         {
-            if (!isGrounded)
+            isGrounded = true;
+
+            // Tắt collider khi chạm đất
+            if (jumpAttack != null)
             {
-                isGrounded = true;
-
-                // 💥 Gây vùng sát thương khi chạm đất
-                if (jumpAttack != null)
-                {
-                    var aoe = jumpAttack.GetComponent<BossGroundAOE>();
-                    if (aoe != null)
-                        aoe.ActivateAOE();
-                }
-
-                Debug.Log("💥 Boss chạm đất → kích hoạt JumpAttack!");
-
-                StartCoroutine(ResetJumpFlag());
+                var aoe = jumpAttack.GetComponent<BossGroundAOE>();
+                if (aoe != null)
+                    aoe.DeactivateAOE();
             }
+
+            StartCoroutine(ResetJumpFlag());
+
+            Debug.Log("💥 Boss chạm đất → AOE collider tắt");
         }
     }
 

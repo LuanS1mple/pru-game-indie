@@ -1,92 +1,63 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class BossGroundAOE : MonoBehaviour
 {
     [Header("AOE Settings")]
-    public int damage = 20;
-    public float activeTime = 0.5f; // Thời gian vùng sát thương tồn tại
-
-    [Header("Effects")]
-    public GameObject leftDustPrefab;   // 💨 Prefab bụi bên trái
-    public GameObject rightDustPrefab;  // 💨 Prefab bụi bên phải
-    public Transform effectSpawnPoint;  // Vị trí sinh bụi (thường là chân Boss)
-    public Animator bossAnimator;       // Animator của Boss (ví dụ: Idle sau khi chạm đất)
-
-    public GameObject landDustEffect;  
+    public float damage = 20f;               // Sát thương mỗi cú nhảy
 
     private Collider2D aoeCollider;
     private bool canDamage = false;
 
-    void Awake()
+    private void Awake()
     {
         aoeCollider = GetComponent<Collider2D>();
-        aoeCollider.enabled = false;
+        if (aoeCollider == null)
+        {
+            Debug.LogError("BossGroundAOE cần Collider2D!");
+            return;
+        }
+
+        aoeCollider.enabled = false; // ban đầu tắt
     }
 
-    // Gọi khi Boss tiếp đất
+    // 🔥 Gọi khi Boss bắt đầu nhảy → bật collider
     public void ActivateAOE()
     {
-        // Gọi animation bụi
-        if (landDustEffect != null)
-        {
-            GameObject dust = Instantiate(
-                landDustEffect,
-                effectSpawnPoint != null ? effectSpawnPoint.position : transform.position,
-                Quaternion.identity
-            );
+        canDamage = true;
+        if (aoeCollider != null)
+            aoeCollider.enabled = true; // bật collider ngay
 
-            // Hủy sau 1s để dọn rác
-            Destroy(dust, 1f);
-        }
-
-        Debug.Log("💨 Hiệu ứng bụi được kích hoạt!");
+        Debug.Log("🦘 Boss nhảy → AOE collider bật, có thể gây damage");
     }
 
-    private IEnumerator ActivateRoutine()
+    // 🔥 Gọi khi Boss chạm đất → tắt collider
+    public void DeactivateAOE()
     {
-        canDamage = true;
-        aoeCollider.enabled = true;
-
-        // Chuyển animation về Idle (sau khi chạm đất)
-        if (bossAnimator != null)
-            bossAnimator.Play("BossIdle");
-
-        // 💥 Hiệu ứng bụi khi chạm đất
-        Vector3 spawnPos = effectSpawnPoint != null ? effectSpawnPoint.position : transform.position;
-
-        // Tạo bụi bên trái
-        if (leftDustPrefab != null)
-        {
-            Instantiate(leftDustPrefab, spawnPos, Quaternion.identity);
-        }
-
-        // Tạo bụi bên phải
-        if (rightDustPrefab != null)
-        {
-            Instantiate(rightDustPrefab, spawnPos, Quaternion.identity);
-        }
-
-        Debug.Log("💥 Boss tiếp đất → kích hoạt AOE + bụi trái phải!");
-
-        yield return new WaitForSeconds(activeTime);
-
         canDamage = false;
-        aoeCollider.enabled = false;
+        if (aoeCollider != null)
+            aoeCollider.enabled = false; // tắt collider
+
+        Debug.Log("💥 Boss chạm đất → AOE collider tắt");
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (!canDamage) return;
+        if (!canDamage) return; // chỉ gây damage khi bật
 
-        if (other.CompareTag("Player"))
+        // Gây sát thương cho Player
+        if (other.gameObject.layer == LayerMask.NameToLayer("Player"))
         {
-            var stats = other.GetComponent<PlayerStats>();
+            var stats = other.GetComponent<BaseStats>();
             if (stats != null)
             {
                 stats.TakeDamage(damage);
-                Debug.Log($"[BossAOE] Player trúng đòn dậm đất! (-{damage})");
+                Debug.Log($"[BossAOE] Player trúng Jump AOE! (-{damage})");
             }
+
+            // Chỉ gây damage một lần mỗi cú
+            canDamage = false;
+            if (aoeCollider != null)
+                aoeCollider.enabled = false;
         }
     }
 }

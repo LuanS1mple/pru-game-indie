@@ -2,18 +2,18 @@ using UnityEngine;
 using System;
 using System.Collections;
 
-public class BossStats : MonoBehaviour
+public class BlueSlimeStats : MonoBehaviour
 {
-    [SerializeField] private BossStatus bossStatus;
-    [SerializeField] private bool autoPullFromBoss = true;
+    [SerializeField] private BlueSlimeStatus blueSlimeStatus;
+    [SerializeField] private bool autoPullFromSlime = true;
     [SerializeField] private float pullInterval = 0.05f;
 
-    [SerializeField] private int maxHealth = 200;
+    [SerializeField] private int maxHealth = 50;
     [SerializeField] private int currentHealth;
     [SerializeField] private bool isDead = false;
 
     public event Action<int, int> OnHealthChanged;
-    public event Action OnBossDied;
+    public event Action OnSlimeDied;
 
     public int MaxHealth => maxHealth;
     public int CurrentHealth => currentHealth;
@@ -23,13 +23,13 @@ public class BossStats : MonoBehaviour
 
     void Awake()
     {
-        if (!bossStatus) bossStatus = GetComponent<BossStatus>();
+        if (!blueSlimeStatus) blueSlimeStatus = GetComponent<BlueSlimeStatus>();
 
-        if (bossStatus)
+        if (blueSlimeStatus)
         {
-            maxHealth = Mathf.RoundToInt(bossStatus.maxHealth);
-            currentHealth = Mathf.Clamp(Mathf.RoundToInt(bossStatus.currentHealth), 0, maxHealth);
-            isDead = bossStatus.isDead;
+            maxHealth = Mathf.RoundToInt(blueSlimeStatus.maxHealth);
+            currentHealth = Mathf.Clamp(Mathf.RoundToInt(blueSlimeStatus.currentHealth), 0, maxHealth);
+            isDead = blueSlimeStatus.isDead;
         }
 
         _lastCur = currentHealth;
@@ -40,28 +40,28 @@ public class BossStats : MonoBehaviour
     {
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
 
-        if (autoPullFromBoss && bossStatus)
-            StartCoroutine(CoPullFromBoss());
+        if (autoPullFromSlime && blueSlimeStatus)
+            StartCoroutine(CoPullFromSlime());
     }
 
-    public void UpdateFromBoss()
+    public void UpdateFromSlime()
     {
-        if (!bossStatus) return;
+        if (!blueSlimeStatus) return;
 
-        int newMax = Mathf.RoundToInt(bossStatus.maxHealth);
-        int newCur = Mathf.Clamp(Mathf.RoundToInt(bossStatus.currentHealth), 0, newMax);
+        int newMax = Mathf.RoundToInt(blueSlimeStatus.maxHealth);
+        int newCur = Mathf.Clamp(Mathf.RoundToInt(blueSlimeStatus.currentHealth), 0, newMax);
 
         bool changed = (newCur != currentHealth) || (newMax != maxHealth);
 
         maxHealth = newMax;
         currentHealth = newCur;
-        isDead = bossStatus.isDead;
+        isDead = blueSlimeStatus.isDead;
 
         if (changed)
             RaiseHealthChanged();
 
         if (isDead)
-            OnBossDied?.Invoke();
+            OnSlimeDied?.Invoke();
     }
 
     public void SetHealthForUI(int current, int max)
@@ -71,13 +71,13 @@ public class BossStats : MonoBehaviour
         RaiseHealthChanged();
     }
 
-    private IEnumerator CoPullFromBoss()
+    private IEnumerator CoPullFromSlime()
     {
         var wait = new WaitForSeconds(pullInterval);
         while (true)
         {
-            if (bossStatus)
-                UpdateFromBoss();
+            if (blueSlimeStatus)
+                UpdateFromSlime();
 
             yield return wait;
         }
