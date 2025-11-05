@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 4457928343880900905}
   - component: {fileID: 4457928343880900918}
   - component: {fileID: 4457928343880900919}
-  m_Layer: 0
+  m_Layer: 20
   m_Name: crossed1 1
   m_TagString: TestAttack
   m_Icon: {fileID: 0}

@@ -274,6 +274,12 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
         // Kích hoạt animation
         if (animator) animator.SetTrigger("cross");
 
+        //SoundSkill2
+        if (audioManager != null && audioManager.skill2 != null)
+        {
+            audioManager.PlaySFX(audioManager.skill2);
+        }
+
         // Đợi đúng “cửa sổ” xuất chiêu (khớp timing animation)
         yield return new WaitForSeconds(0.20f);
 
@@ -327,6 +333,12 @@ public class movement : MonoBehaviour // <-- Quay lại MonoBehaviour
 
         // 4) Gọi animation cast ngay
         if (animator) animator.SetTrigger("wind");
+        
+        //SoundSkill1
+        if (audioManager != null && audioManager.skill1 != null)
+        {
+            audioManager.PlaySFX(audioManager.skill1);
+        }
 
         // 5) Chờ một nhịp cho khớp timing animation (tuỳ clip của bạn)
         yield return new WaitForSeconds(0.25f);

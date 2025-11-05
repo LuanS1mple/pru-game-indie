@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 3829332156389433575}
   - component: {fileID: 3465659900644767884}
   - component: {fileID: 7698607281777568563}
-  m_Layer: 0
+  m_Layer: 20
   m_Name: WindGround_0
   m_TagString: TestAttack
   m_Icon: {fileID: 0}
