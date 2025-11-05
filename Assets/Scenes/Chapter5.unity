@@ -4648,7 +4648,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 403782674}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -16.863714, y: 7.4501896, z: -10}
+  m_LocalPosition: {x: -20.37482, y: 7.45429, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5172,7 +5172,7 @@ Transform:
   - {fileID: 3171301165260752819}
   - {fileID: 494233266}
   m_Father: {fileID: 0}
-  m_RootOrder: 20
+  m_RootOrder: 21
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &473272805
 GameObject:
@@ -40364,7 +40364,7 @@ Transform:
   - {fileID: 1722482716}
   - {fileID: 699000813}
   m_Father: {fileID: 0}
-  m_RootOrder: 21
+  m_RootOrder: 22
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &888921761 stripped
 MonoBehaviour:
@@ -55640,7 +55640,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 19
+  m_RootOrder: 20
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1475420639
 PrefabInstance:
@@ -57059,7 +57059,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 18
+  m_RootOrder: 19
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1665362153
 PrefabInstance:
@@ -60326,6 +60326,10 @@ PrefabInstance:
       propertyPath: slotIcons.Array.data[4]
       value: 
       objectReference: {fileID: 2147287602}
+    - target: {fileID: 1227084843363976616, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 2108498833}
     - target: {fileID: 2866226062685495237, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -60542,7 +60546,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1227084843087367822, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
 --- !u!1001 &2106736540
 PrefabInstance:

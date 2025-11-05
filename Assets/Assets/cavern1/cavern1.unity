@@ -976,6 +976,14 @@ PrefabInstance:
       propertyPath: player
       value: 
       objectReference: {fileID: 595778884}
+    - target: {fileID: 1958748110, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
+      propertyPath: playerStats
+      value: 
+      objectReference: {fileID: 595778884}
+    - target: {fileID: 1227084843363976616, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 595778884}
     - target: {fileID: 2866226062685495237, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -1196,7 +1204,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1227084843087367822, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
+    - {fileID: 1145361640, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
+    - {fileID: 1145361639, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
 --- !u!1 &892102084 stripped
 GameObject:

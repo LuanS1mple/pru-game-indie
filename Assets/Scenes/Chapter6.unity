@@ -15623,7 +15623,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1227084843087367822, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: 2d993c150cb0b234688fa5472b33d3a8, type: 3}
 --- !u!1001 &1698135114
 PrefabInstance:
@@ -17632,6 +17633,7 @@ MonoBehaviour:
   deathZoomSize: 2.5
   zoomSpeed: 2
   deathAnimDuration: 1.5
+  windHud: {fileID: 0}
 --- !u!212 &726147354106538548
 SpriteRenderer:
   m_ObjectHideFlags: 0
