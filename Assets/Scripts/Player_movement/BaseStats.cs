@@ -2,6 +2,7 @@
 
 public class BaseStats : MonoBehaviour
 {
+    private AudioManager audioManager;
     [Header("Basic Stats")]
     public string entityName = "Unknown";
     public float maxHP = 100f;
@@ -19,6 +20,7 @@ public class BaseStats : MonoBehaviour
 
     protected virtual void Awake()
     {
+        audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
         currentHP = maxHP;
         // Cố gắng lấy movement
         playerMovement = GetComponent<movement>();
@@ -44,6 +46,10 @@ public class BaseStats : MonoBehaviour
         // ⭐ SỬA: Gọi animation Hit
         if (playerMovement != null) // Nếu là Player
         {
+            if (audioManager != null)
+            {
+                audioManager.PlaySFX(audioManager.hurt);
+            }
             playerMovement.PlayHitAnimation();
         }
         else if (anim != null) // Nếu là Enemy (hoặc Player không có script movement riêng)

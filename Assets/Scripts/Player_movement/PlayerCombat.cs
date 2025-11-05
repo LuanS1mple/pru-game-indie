@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public class PlayerCombat : MonoBehaviour
 {
+    private AudioManager audioManager;
     public BaseStats playerStats;
     public Collider2D attackCollider;
     public float knockbackForce = 3f; // lực đẩy nhẹ, có thể chỉnh từ 2–5f
@@ -16,6 +17,7 @@ public class PlayerCombat : MonoBehaviour
         playerStats = GetComponent<BaseStats>();
         if (attackCollider != null)
             attackCollider.enabled = false;
+        audioManager = GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioManager>();
     }
 
     // --- Animation Event: bắt đầu đòn đánh ---
@@ -66,6 +68,10 @@ public class PlayerCombat : MonoBehaviour
         {
             enemyStats.TakeDamage(playerStats.attack);
             hitEnemies.Add(collision);
+            if (audioManager != null)
+            {
+                audioManager.PlaySFX(audioManager.swordHit);
+            }
             Rigidbody2D enemyRb = collision.attachedRigidbody;
             if (enemyRb != null)
             {

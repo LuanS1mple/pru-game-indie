@@ -32,9 +32,6 @@ public class EnemyHitbox : MonoBehaviour
         if (Time.time - lastHitTime < hitCooldown) return;
         lastHitTime = Time.time;
 
-        Debug.Log($"🧩 [EnemyHitbox] {name} va chạm với {other.name} lúc {Time.time:F2}");
-
-        // ✅ Lấy BaseStats và PlayerStats từ Player
         BaseStats bs = other.GetComponentInParent<BaseStats>();
         PlayerStats ps = other.GetComponentInParent<PlayerStats>();
 
@@ -44,42 +41,41 @@ public class EnemyHitbox : MonoBehaviour
             return;
         }
 
-        float beforeHP = bs.currentHP;
+        float oldHP = bs.currentHP;
         bool wasDeadBefore = bs.isDead;
 
-        Debug.Log($"[EnemyHitbox] 💢 Gây damage {damage} cho {bs.entityName} (trước: {beforeHP}/{bs.maxHP}, dead={wasDeadBefore})");
-
-        // --- Gây damage ---
+        // --- Gây damage (BaseStats tự tính armor) ---
         bs.TakeDamage(damage);
 
-        float afterHP = bs.currentHP;
+        float newHP = bs.currentHP;
+        float actualDamage = Mathf.Clamp(oldHP - newHP, 0, damage);
         bool isDeadNow = bs.isDead;
 
-        Debug.Log($"[EnemyHitbox] 📊 Sau khi trừ damage: currentHP={afterHP}/{bs.maxHP}, isDead={isDeadNow}");
+        Debug.Log($"[EnemyHitbox] 💢 Gây {actualDamage} damage thực tế cho {bs.entityName} (sau giáp), còn {newHP}/{bs.maxHP}");
 
-        // --- HUD cập nhật ---
+        // --- Cập nhật HUD đúng ---
         if (ps != null)
         {
-            if (!isDeadNow)
-            {
-                ps.TakeDamage(damage);
-                Debug.Log($"[EnemyHitbox] ❤️ HUD cập nhật: Player còn {ps.CurrentHealth}/{ps.MaxHealth}");
-            }
-            else
-            {
-                ps.TakeDamage(ps.CurrentHealth);
-                Debug.Log($"💀 [EnemyHitbox] Player đã chết → HUD về 0");
-            }
+            ps.TakeDamage((int)actualDamage);
+            Debug.Log($"❤️ [EnemyHitbox] HUD cập nhật: Player mất {actualDamage}, còn {ps.CurrentHealth}/{ps.MaxHealth}");
         }
 
-        // --- Xác nhận Player chết thực sự ---
+        // --- Knockback (chỉ nếu có Rigidbody) ---
+        Rigidbody2D playerRb = other.attachedRigidbody;
+        if (playerRb != null)
+        {
+            Vector2 dir = (other.transform.position - transform.position).normalized;
+            playerRb.AddForce(dir * knockbackToPlayer, ForceMode2D.Impulse);
+        }
+
+        // --- Log trạng thái ---
         if (isDeadNow && !wasDeadBefore)
         {
-            Debug.Log($"☠️ [EnemyHitbox] Player {bs.entityName} CHẾT tại thời điểm {Time.time:F2}");
+            Debug.Log($"☠️ Player {bs.entityName} CHẾT tại thời điểm {Time.time:F2}");
         }
         else if (!isDeadNow)
         {
-            Debug.Log($"🩸 [EnemyHitbox] Player {bs.entityName} vẫn sống sau đòn đánh này.");
+            Debug.Log($"🩸 Player {bs.entityName} sống sót sau đòn đánh này ({newHP}/{bs.maxHP})");
         }
     }
 }
