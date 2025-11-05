@@ -2547,10 +2547,21 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8093320978058389245, guid: 5d5711577d541b5498ff6e9f8a89ffd6, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 5d5711577d541b5498ff6e9f8a89ffd6, type: 3}
+--- !u!114 &1192074935 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8093320978058389186, guid: 5d5711577d541b5498ff6e9f8a89ffd6, type: 3}
+  m_PrefabInstance: {fileID: 1192074934}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5cea86cfd3bf85e4f996028818315091, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1220331787 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4295742476387985825, guid: bf414b9be55d4c840887ac27ca49b801, type: 3}
@@ -17130,6 +17141,23 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 7481819587655803617, guid: 44d21cb55a0564e45be52dfe280ac6ad, type: 3}
   m_PrefabInstance: {fileID: 7481819587408226807}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1993231127
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1993231126}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e0cfe5ebe83d3234cb2457a5d8a25652, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  BossSound: {fileID: 8300000, guid: 67a5433e2d763aa4685e866fb846ef2b, type: 3}
+  AudioManager: {fileID: 1192074935}
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 256
 --- !u!114 &2024881156 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4295742477074568130, guid: bf414b9be55d4c840887ac27ca49b801, type: 3}
@@ -17632,6 +17660,7 @@ MonoBehaviour:
   deathZoomSize: 2.5
   zoomSpeed: 2
   deathAnimDuration: 1.5
+  windHud: {fileID: 0}
 --- !u!212 &726147354106538548
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -18034,7 +18063,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   entityName: player
   maxHP: 200
-  currentHP: 200
+  currentHP: 1000
   attack: 15
   defense: 5
   isInvulnerable: 0
@@ -18481,6 +18510,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 7481819587655803616, guid: 44d21cb55a0564e45be52dfe280ac6ad, type: 3}
+      propertyPath: m_IsTrigger
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7481819587655803617, guid: 44d21cb55a0564e45be52dfe280ac6ad, type: 3}
       propertyPath: m_Name
       value: DoorBoss
